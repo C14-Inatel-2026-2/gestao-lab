@@ -1,1 +1,1 @@
-package br.inatel.backend.devices.controller;
+package br.inatel.devices.controller;

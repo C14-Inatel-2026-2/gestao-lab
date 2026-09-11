@@ -1,1 +1,1 @@
-package br.inatel.backend.users.model;
+package br.inatel.users.model;

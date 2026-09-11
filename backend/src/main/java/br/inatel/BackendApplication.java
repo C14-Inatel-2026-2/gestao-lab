@@ -1,4 +1,4 @@
-package br.inatel.backend;
+package br.inatel;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

@@ -1,1 +1,1 @@
-package br.inatel.backend.devices.service;
+package br.inatel.devices.service;

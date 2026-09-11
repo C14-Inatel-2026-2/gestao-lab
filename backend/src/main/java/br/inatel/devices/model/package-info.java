@@ -1,1 +1,1 @@
-package br.inatel.backend.devices.model;
+package br.inatel.devices.model;

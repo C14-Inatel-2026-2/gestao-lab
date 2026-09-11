@@ -1,1 +1,1 @@
-package br.inatel.backend.labs.dto;
+package br.inatel.labs.dto;

@@ -1,1 +1,1 @@
-package br.inatel.backend.users.controller;
+package br.inatel.users.controller;

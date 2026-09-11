@@ -1,1 +1,1 @@
-package br.inatel.backend.users.dto;
+package br.inatel.users.dto;

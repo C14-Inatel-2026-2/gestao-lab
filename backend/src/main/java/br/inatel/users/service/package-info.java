@@ -1,1 +1,1 @@
-package br.inatel.backend.users.service;
+package br.inatel.users.service;

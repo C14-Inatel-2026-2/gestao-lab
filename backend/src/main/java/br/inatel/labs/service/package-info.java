@@ -1,1 +1,1 @@
-package br.inatel.backend.labs.service;
+package br.inatel.labs.service;

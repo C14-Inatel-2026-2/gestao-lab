@@ -1,1 +1,1 @@
-package br.inatel.backend.labs.repository;
+package br.inatel.labs.repository;

@@ -1,1 +1,1 @@
-package br.inatel.backend.loans.dto;
+package br.inatel.loans.dto;

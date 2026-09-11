@@ -1,1 +1,1 @@
-package br.inatel.backend.loans.model;
+package br.inatel.loans.model;

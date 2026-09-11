@@ -1,1 +1,1 @@
-package br.inatel.backend.devices.dto;
+package br.inatel.devices.dto;

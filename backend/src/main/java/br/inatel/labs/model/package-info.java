@@ -1,1 +1,1 @@
-package br.inatel.backend.labs.model;
+package br.inatel.labs.model;

@@ -1,1 +1,1 @@
-package br.inatel.backend.devices.repository;
+package br.inatel.devices.repository;

@@ -1,1 +1,1 @@
-package br.inatel.backend.loans.service;
+package br.inatel.loans.service;

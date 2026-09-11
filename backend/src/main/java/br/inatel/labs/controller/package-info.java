@@ -1,1 +1,1 @@
-package br.inatel.backend.labs.controller;
+package br.inatel.labs.controller;

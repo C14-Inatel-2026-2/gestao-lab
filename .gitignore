@@ -46,6 +46,7 @@ build/
 .env
 .env.local
 .env.*.local
+.idea
 
 # React (Create React App)
 .eslintcache

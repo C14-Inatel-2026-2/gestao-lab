@@ -50,3 +50,5 @@ build/
 # React (Create React App)
 .eslintcache
 .parcel-cache/
+# Maven
+target/

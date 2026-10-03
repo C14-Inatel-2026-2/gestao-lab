@@ -49,4 +49,5 @@ build/
 
 # React (Create React App)
 .eslintcache
-.parcel-cache/
+.parcel-cache/.idea/
+**/.DS_Store

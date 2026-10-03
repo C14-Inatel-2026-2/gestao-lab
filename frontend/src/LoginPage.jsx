@@ -1,19 +1,21 @@
 import { useState } from 'react';
 import { useAuth } from './AuthContext';
-import { USE_MOCK, ROLE_LABELS } from './api';
+import { USE_MOCK, ROLE_LABELS, CONTAS_DEMO } from './api';
 
-// Integrantes do grupo, espelhando os usuarios do mock em api.js
-const CONTAS_DEMO = [
-  { name: 'Solange Ribeiro da Fonseca', email: 'solange@inatel.br', role: 'ADMIN' },
-  { name: 'Mauro Iwama', email: 'mauro@inatel.br', role: 'ADMIN' },
-  { name: 'Giovana Franciele Gonçalves Leite', email: 'giovana@inatel.br', role: 'PARTICIPANT' },
-  { name: 'Igor Nogueira Olivio', email: 'igor@inatel.br', role: 'PARTICIPANT' },
-  { name: 'Lucas Nolasco Ynoguti', email: 'lucas@inatel.br', role: 'PARTICIPANT' },
-];
+
+/** Campo de formulario com rotulo e mensagem de erro. */
+function Campo({ id, label, erro, ...props }) {
+  return (
+    <div className="field">
+      <label className="field__label" htmlFor={id}>{label}</label>
+      <input id={id} className={`field__control ${erro ? 'field__control--error' : ''}`} {...props} />
+      {erro && <span className="field__error">{erro}</span>}
+    </div>
+  );
+}
 
 export default function LoginPage() {
   const { login, loading } = useAuth();
-
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [erros, setErros] = useState({});
@@ -64,45 +66,29 @@ export default function LoginPage() {
             <p className="login__desc">Use suas credenciais institucionais.</p>
           </div>
 
-          {erroGeral && (
-            <div className="alert" role="alert">
-              {erroGeral}
-            </div>
-          )}
+          {erroGeral && <div className="alert" role="alert">{erroGeral}</div>}
 
-          <div className="field">
-            <label className="field__label" htmlFor="email">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              name="email"
-              autoComplete="username"
-              placeholder="nome@inatel.br"
-              className={`field__control ${erros.email ? 'field__control--error' : ''}`}
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-            />
-            {erros.email && <span className="field__error">{erros.email}</span>}
-          </div>
+          <Campo
+            id="email"
+            label="Email"
+            type="email"
+            autoComplete="username"
+            placeholder="nome@inatel.br"
+            value={email}
+            erro={erros.email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
 
-          <div className="field">
-            <label className="field__label" htmlFor="senha">
-              Senha
-            </label>
-            <input
-              id="senha"
-              type="password"
-              name="senha"
-              autoComplete="current-password"
-              placeholder="Sua senha"
-              className={`field__control ${erros.senha ? 'field__control--error' : ''}`}
-              value={senha}
-              onChange={(event) => setSenha(event.target.value)}
-            />
-            {erros.senha && <span className="field__error">{erros.senha}</span>}
-          </div>
+          <Campo
+            id="senha"
+            label="Senha"
+            type="password"
+            autoComplete="current-password"
+            placeholder="Sua senha"
+            value={senha}
+            erro={erros.senha}
+            onChange={(e) => setSenha(e.target.value)}
+          />
 
           <button type="submit" className="btn btn--primary" disabled={loading}>
             {loading ? 'Entrando...' : 'Entrar'}
@@ -111,9 +97,7 @@ export default function LoginPage() {
           {USE_MOCK && (
             <div className="demo">
               <strong>Ambiente de demonstracao</strong>
-              <p className="demo__sub">
-                Senha para todos: <code>123456</code>
-              </p>
+              <p className="demo__sub">Senha para todos: <code>123456</code></p>
               <ul className="demo__lista">
                 {CONTAS_DEMO.map((conta) => (
                   <li key={conta.email}>

@@ -70,6 +70,11 @@ function criarUsuarios() {
   ];
 }
 
+/** Contas da tela de login, derivadas dos usuarios ativos - fonte unica. */
+export const CONTAS_DEMO = criarUsuarios()
+  .filter((u) => u.active)
+  .map(({ name, email, role }) => ({ name, email, role }));
+
 let usuarios = criarUsuarios();
 
 /** Usado pelos testes para garantir isolamento entre cenarios. */

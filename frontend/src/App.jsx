@@ -11,35 +11,28 @@ export default function App() {
 function Confirmacao() {
   const { user, logout, isAdmin } = useAuth();
 
+  const dados = [
+    ['Nome', user.name],
+    ['Email', user.email],
+    ['Matricula', user.registration],
+    ['Perfil', <span className="badge">{ROLE_LABELS[user.role]}</span>],
+  ];
+
   return (
     <div className="welcome">
       <div className="welcome__card">
-        <div className="avatar" aria-hidden="true">
-          {initials(user.name)}
-        </div>
+        <div className="avatar" aria-hidden="true">{initials(user.name)}</div>
 
         <h1>Ola, {String(user.name).split(' ')[0]}</h1>
         <p className="muted">Autenticacao concluida com sucesso.</p>
 
         <dl className="welcome__dados">
-          <div>
-            <dt>Nome</dt>
-            <dd>{user.name}</dd>
-          </div>
-          <div>
-            <dt>Email</dt>
-            <dd>{user.email}</dd>
-          </div>
-          <div>
-            <dt>Matricula</dt>
-            <dd>{user.registration}</dd>
-          </div>
-          <div>
-            <dt>Perfil</dt>
-            <dd>
-              <span className="badge">{ROLE_LABELS[user.role]}</span>
-            </dd>
-          </div>
+          {dados.map(([rotulo, valor]) => (
+            <div key={rotulo}>
+              <dt>{rotulo}</dt>
+              <dd>{valor}</dd>
+            </div>
+          ))}
         </dl>
 
         <p className="welcome__nota">
@@ -48,9 +41,7 @@ function Confirmacao() {
             : 'Como participante, voce pode solicitar emprestimos de equipamentos para seus projetos.'}
         </p>
 
-        <button type="button" className="btn btn--secondary" onClick={logout}>
-          Sair
-        </button>
+        <button type="button" className="btn btn--secondary" onClick={logout}>Sair</button>
       </div>
     </div>
   );

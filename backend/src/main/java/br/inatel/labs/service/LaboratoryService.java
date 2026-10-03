@@ -20,4 +20,9 @@ public class LaboratoryService {
 
         return repository.save(new Laboratory(name));
     }
+
+    public Laboratory findById(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Laboratory not found"));
+    }
 }

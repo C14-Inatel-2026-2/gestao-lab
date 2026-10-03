@@ -9,6 +9,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -61,5 +64,27 @@ class LaboratoryServiceTest {
         assertThrows(IllegalArgumentException.class, () -> service.create("   "));
 
         verifyNoInteractions(repository);
+    }
+
+    @Test
+    void shouldFindLaboratoryById() {
+        Laboratory savedLaboratory = new Laboratory("Laboratorio de Software");
+        when(repository.findById(1L)).thenReturn(Optional.of(savedLaboratory));
+
+        Laboratory laboratory = service.findById(1L);
+
+        assertSame(savedLaboratory, laboratory);
+        verify(repository).findById(1L);
+    }
+
+    @Test
+    void shouldRejectUnknownLaboratoryId() {
+        when(repository.findById(1L)).thenReturn(Optional.empty());
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class, () -> service.findById(1L));
+
+        assertEquals("Laboratory not found", exception.getMessage());
+        verify(repository).findById(1L);
     }
 }

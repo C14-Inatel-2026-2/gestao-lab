@@ -1,5 +1,7 @@
 package br.inatel.users.service;
 
+import br.inatel.users.model.Role;
+import br.inatel.users.model.User;
 import br.inatel.users.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +18,26 @@ public class UserService {
 
     public boolean isEmailAvailable(String email) {
         return userRepository.findByEmail(email).isEmpty();
+    }
+
+    public User create(String name, String email, String password, Role role) {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("User name is required");
+        }
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("User email is required");
+        }
+        if (!isPasswordValid(password)) {
+            throw new IllegalArgumentException("User password is invalid");
+        }
+        if (role == null) {
+            throw new IllegalArgumentException("User role is required");
+        }
+        if (!isEmailAvailable(email)) {
+            throw new IllegalArgumentException("Email already registered");
+        }
+
+        return userRepository.save(new User(name, email, password, role));
     }
 
     /**

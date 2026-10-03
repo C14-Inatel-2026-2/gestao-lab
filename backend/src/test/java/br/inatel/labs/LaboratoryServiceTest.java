@@ -9,10 +9,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -32,23 +32,14 @@ class LaboratoryServiceTest {
 
     @Test
     void shouldCreateLaboratory() {
-        when(repository.save(any(Laboratory.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-
-        Laboratory laboratory = service.create("Laboratorio de Software");
-
-        assertEquals("Laboratorio de Software", laboratory.getName());
-        verify(repository).save(laboratory);
-    }
-
-    @Test
-    void shouldReturnSavedLaboratory() {
-        Laboratory savedLaboratory = new Laboratory("Laboratorio de Software");
+        String name = "Laboratorio de Software";
+        Laboratory savedLaboratory = new Laboratory(name);
         when(repository.save(any(Laboratory.class))).thenReturn(savedLaboratory);
 
-        Laboratory laboratory = service.create("Laboratorio de Software");
+        Laboratory laboratory = service.create(name);
 
         assertSame(savedLaboratory, laboratory);
+        verify(repository).save(argThat(saved -> name.equals(saved.getName())));
     }
 
     @Test

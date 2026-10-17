@@ -93,6 +93,58 @@ function loginMock(email, password) {
   return { token: `mock-token-${id}`, user: { id, name, email: usuario.email, role, registration, active } };
 }
 
+/** Situacao do equipamento, espelhando o enum do backend (br.inatel.devices) */
+export const STATUS_LABELS = {
+  AVAILABLE: 'Disponivel',
+  LOANED: 'Emprestado',
+  MAINTENANCE: 'Em manutencao',
+};
+
+function criarDispositivos() {
+  return [
+    { id: 1, nome: 'Raspberry Pi 4 Model B', patrimonio: 'IOT-0001', categoria: 'Placa', laboratorio: 'Laboratorio de IoT', status: 'LOANED' },
+    { id: 2, nome: 'ESP32 DevKit v1', patrimonio: 'IOT-0002', categoria: 'Placa', laboratorio: 'Laboratorio de IoT', status: 'AVAILABLE' },
+    { id: 3, nome: 'Sensor BME280', patrimonio: 'IOT-0003', categoria: 'Sensor', laboratorio: 'Laboratorio de IoT', status: 'AVAILABLE' },
+    { id: 4, nome: 'Modulo LoRa SX1276', patrimonio: 'IOT-0004', categoria: 'Modulo', laboratorio: 'Laboratorio de IoT', status: 'MAINTENANCE' },
+    { id: 5, nome: 'Switch Cisco Catalyst 2960', patrimonio: 'NET-0001', categoria: 'Rede', laboratorio: 'Laboratorio de Redes', status: 'LOANED' },
+    { id: 6, nome: 'Roteador Mikrotik hEX', patrimonio: 'NET-0002', categoria: 'Rede', laboratorio: 'Laboratorio de Redes', status: 'AVAILABLE' },
+    { id: 7, nome: 'Servo Motor MG996R', patrimonio: 'ROB-0001', categoria: 'Atuador', laboratorio: 'Laboratorio de Robotica', status: 'AVAILABLE' },
+    { id: 8, nome: 'Fonte de Bancada 30V/5A', patrimonio: 'ROB-0002', categoria: 'Instrumento', laboratorio: 'Laboratorio de Robotica', status: 'MAINTENANCE' },
+  ];
+}
+
+let dispositivos = criarDispositivos();
+
+/** Usado pelos testes para garantir isolamento entre cenarios. */
+export function resetDispositivos() {
+  dispositivos = criarDispositivos();
+}
+
+/** Busca sem acento e sem diferenciar maiusculas. */
+function combina(termo, ...valores) {
+  const alvo = String(termo || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  if (!alvo) return true;
+  return valores.some((v) => String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().includes(alvo));
+}
+
+async function listarDispositivosReal({ q, status }) {
+  const busca = new URLSearchParams();
+  if (q) busca.set('q', q);
+  if (status) busca.set('status', status);
+  const response = await fetch(`${API_URL}/devices?${busca}`);
+  if (!response.ok) throw new ApiError('Nao foi possivel carregar o inventario.', response.status);
+  return response.json();
+}
+
+export async function listarDispositivos({ q = '', status = '' } = {}) {
+  if (!USE_MOCK) return listarDispositivosReal({ q, status });
+
+  await new Promise((resolve) => setTimeout(resolve, 150));
+  return dispositivos
+    .filter((d) => (status ? d.status === status : true))
+    .filter((d) => combina(q, d.nome, d.patrimonio, d.categoria, d.laboratorio));
+}
+
 /* Usado pela interface*/
 
 export async function login(email, password) {

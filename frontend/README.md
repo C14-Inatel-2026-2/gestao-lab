@@ -1,41 +1,49 @@
-# Tela de Login — Gestão de Laboratórios e Dispositivos (C14)
+# Tela de Login - Gestão de Laboratórios e Dispositivos (C14)
 
 apenas a autenticação.
 
 ---
 
-**46 testes** em 5 suítes, com Jest + React Testing Library.
+**74 testes** em 6 suítes, com Jest + React Testing Library.
 
-45 passam. **1 falha de propósito** — veja "Teste vermelho" abaixo.
+73 passam, 1 falha de propósito.
 
 ---
 
-## O que esta versão faz
+## As duas telas
 
-1. **Tela de login** com validação de campos (email obrigatório, formato do
-   email, senha obrigatória) antes de chamar a API.
-2. **Autenticação** contra a API mock em memória, com três respostas possíveis:
-   usuário não encontrado, senha inválida e usuário inativo.
-3. **Sessão** guardada no `localStorage` (token + dados do usuário) via
-   `AuthContext`.
-4. **Tela de confirmação** pós-login, mostrando quem entrou, a matrícula e o
-   perfil reconhecido.
-5. **Sair**, que limpa a sessão e volta para o login.
+### 1. Login
 
-Feito em React 18 com Vite. Sem React Router — com uma tela só, o `App.jsx`
-alterna entre login e confirmação conforme a sessão.
+- Validação dos campos (email obrigatório, formato, senha obrigatória) antes de chamar a API
+- Autenticação com três respostas: usuário não encontrado, senha inválida e usuário inativo
+- Sessão guardada no `localStorage` via `AuthContext`
+- Lista dos cinco integrantes: clicar no nome preenche os campos
+
+### 2. Inventário de dispositivos
+
+Abre após o login — é o núcleo do sistema.
+
+- **Lista os equipamentos** com nome, patrimônio, categoria, laboratório e situação
+- **Busca** por qualquer um desses campos, ignorando acento e caixa
+- **Filtro por situação**: Disponível, Emprestado ou Em manutenção
+- **Resumo** com total de itens e quantos estão disponíveis
+- **Cabeçalho** com o usuário, o perfil reconhecido e o botão Sair
+- Orientação diferente para Administrador e Participante
+
+Feito em React 18 com Vite. Sem React Router — com duas telas, o `App.jsx`
+alterna conforme a sessão.
 
 ---
 
 ## Testes
 
-46 casos em 5 suítes, cobrindo as classes e os métodos do projeto.
+74 casos em 6 suítes, cobrindo as duas telas, as classes e os métodos do projeto.
 
 ### Atendimento ao requisito
 
 | Requisito | Onde está |
 |---|---|
-| **2 testes com mock** | `AuthContext.test.jsx` e `LoginPage.unit.test.jsx` — usam `jest.mock` |
+| **2 testes com mock** | `AuthContext.test.jsx`, `LoginPage.unit.test.jsx` e `DispositivosPage.test.jsx` |
 | **2 testes sem mock** | `api.test.js` e `LoginPage.test.jsx` — implementações reais |
 | **Teste vermelho** | `LoginPage.falha.test.jsx` — falha de propósito, documenta requisito pendente |
 | **Teste negativo** | `api.test.js` → "login - casos negativos" (4 casos) e `AuthContext.test.jsx` → "login - caso negativo" (2 casos) |
@@ -125,6 +133,21 @@ Mantido vermelho de propósito, para evidenciar a lacuna.
 
 ---
 
+### `src/DispositivosPage.test.jsx` — com mock (16 casos)
+
+A tela do inventário testada isolada: `api.js` e `useAuth` substituídos por dublês.
+
+| Grupo | Casos |
+|---|---|
+| Cabeçalho | Nome e perfil de quem entrou; Sair chama `logout`; orientação muda para participante |
+| Listagem | Carregando; itens com patrimônio e situação; resumo de disponíveis; busca inicial sem filtros; lista vazia |
+| Filtros | Repassa o termo digitado; repassa a situação escolhida; oferece todas as situações |
+| **Negativos** | Erro da API exibe mensagem; tabela não aparece; carregamento é encerrado |
+
+Os casos de `listarDispositivos` **sem mock** (14, sendo 3 negativos) estão em `api.test.js`.
+
+---
+
 ### Boas práticas adotadas
 
 - **Isolamento**: `beforeEach` limpa `localStorage`, reseta os dados e zera os
@@ -135,3 +158,71 @@ Mantido vermelho de propósito, para evidenciar a lacuna.
   classes CSS — o teste não quebra quando o estilo muda
 - **Verificação de interação**, não só de resultado: confirma que a dependência
   foi chamada o número certo de vezes e com os argumentos certos
+
+---
+
+## CI/CD (Jenkins)
+
+Pipeline declarativo em [`Jenkinsfile`](Jenkinsfile). **Não usa GitHub Actions.**
+
+### Jobs do pipeline
+
+| Stage | O que faz |
+|---|---|
+| **Checkout** | Obtém o código e registra commit e branch |
+| **Build** | `npm ci` (versões travadas) e `vite build` → gera `dist/` |
+| **Testes** | Roda a suíte, publica **relatório JUnit** e **cobertura** |
+| **Empacotar** | Gera `gestao-lab-frontend-<build>.tar.gz` e arquiva no Jenkins |
+| **Deploy** | Extrai o artefato no diretório de publicação, com arquivo `VERSION` |
+
+### Relatórios visíveis no Jenkins
+
+**Relatório de testes** — aba *Test Result*, alimentada por `reports/junit/junit.xml`
+(gerado pelo `jest-junit`). Mostra os 46 casos, quais passaram e a mensagem de cada falha.
+
+**Cobertura** — em dois lugares:
+
+- *Coverage* (plugin Coverage), a partir de `coverage/cobertura-coverage.xml`,
+  com gráfico de tendência entre builds e **quality gate**: abaixo de 70% de
+  linhas ou 60% de branches o build vira `UNSTABLE`.
+- *Cobertura de Testes* (plugin HTML Publisher), o relatório HTML navegável
+  linha a linha.
+
+Cobertura atual: **85,53% instruções · 87,40% linhas · 74,39% branches · 95,74% funções**.
+As duas telas, o `App` e o `AuthContext` estão em **100% de linhas**.
+
+### Sobre o teste vermelho
+
+`LoginPage.falha.test.jsx` falha de propósito (requisito pendente, veja acima).
+O stage de testes usa `catchError` para marcar o build como **UNSTABLE** em vez de
+abortar — assim o relatório é publicado e o pipeline segue, com a falha visível.
+
+Para o pipeline ficar verde, implemente a validação de senha mínima ou rode:
+
+```bash
+npm run test:ci -- --testPathIgnorePatterns "falha"
+```
+
+### Rodando o Jenkins localmente
+
+Ambiente pronto em [`jenkins/`](jenkins/) — Jenkins LTS com Node 20 e os plugins já instalados.
+
+```bash
+cd frontend/jenkins
+docker compose up -d --build
+```
+
+Acesse `http://localhost:8081`. A senha inicial sai com:
+
+```bash
+docker exec jenkins-gestao-lab cat /var/jenkins_home/secrets/initialAdminPassword
+```
+
+Depois crie um job do tipo **Pipeline**, aponte para o repositório e use
+**Script Path** = `frontend/Jenkinsfile`.
+
+### Pré-requisitos no agente
+
+Node.js 20 e os plugins **JUnit**, **Coverage**, **HTML Publisher**. Se o Node
+estiver cadastrado em *Global Tool Configuration*, descomente o bloco `tools`
+no `Jenkinsfile`.

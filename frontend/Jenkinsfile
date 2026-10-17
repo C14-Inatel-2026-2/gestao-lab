@@ -1,0 +1,166 @@
+/*
+ * Pipeline de CI/CD do frontend - Gestao de Laboratorios e Dispositivos (C14)
+ *
+ * Jobs (stages):
+ *   1. Checkout   - obtem o codigo da branch
+ *   2. Build      - instala dependencias e compila a aplicacao
+ *   3. Testes     - roda a suite, publica relatorio JUnit e cobertura
+ *   4. Empacotar  - gera o artefato versionado
+ *   5. Deploy     - publica o artefato (so na branch principal)
+ *
+ * Requisitos no Jenkins:
+ *   - Node.js 20 disponivel no agente (ou o bloco tools abaixo configurado)
+ *   - Plugins: JUnit, Coverage, HTML Publisher
+ *
+ * Em "Pipeline script from SCM", use Script Path = frontend/Jenkinsfile
+ */
+
+pipeline {
+  agent any
+
+  // Descomente se o Node estiver cadastrado em "Global Tool Configuration".
+  // tools { nodejs 'Node20' }
+
+  options {
+    timestamps()
+    timeout(time: 20, unit: 'MINUTES')
+    buildDiscarder(logRotator(numToKeepStr: '15'))
+    skipDefaultCheckout(true)
+  }
+
+  environment {
+    APP_DIR      = 'frontend'
+    NODE_ENV     = 'test'
+    CI           = 'true'
+    // Pasta que simula a raiz do servidor web onde a aplicacao e publicada.
+    DEPLOY_DIR   = "${env.DEPLOY_DIR ?: 'deploy/gestao-lab-frontend'}"
+    ARTEFATO     = "gestao-lab-frontend-${env.BUILD_NUMBER}.tar.gz"
+  }
+
+  stages {
+
+    stage('Checkout') {
+      steps {
+        checkout scm
+        script {
+          env.GIT_SHA = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+          echo "Commit: ${env.GIT_SHA} | Branch: ${env.BRANCH_NAME ?: 'local'}"
+        }
+      }
+    }
+
+    stage('Build') {
+      steps {
+        dir(env.APP_DIR) {
+          // npm ci exige package-lock.json e garante versoes identicas.
+          sh '''
+            node --version
+            npm --version
+            if [ -f package-lock.json ]; then
+              npm ci --no-audit --no-fund
+            else
+              echo "AVISO: package-lock.json ausente, usando npm install"
+              npm install --no-audit --no-fund
+            fi
+            npm run build
+          '''
+        }
+      }
+      post {
+        success {
+          echo 'Build concluido: artefatos estaticos gerados em frontend/dist'
+        }
+      }
+    }
+
+    stage('Testes') {
+      steps {
+        dir(env.APP_DIR) {
+          // A suite inclui um teste vermelho proposital (LoginPage.falha.test.jsx),
+          // que documenta um requisito ainda nao implementado. Por isso a falha
+          // marca o build como UNSTABLE em vez de abortar o pipeline.
+          catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+            sh 'npm run test:ci'
+          }
+        }
+      }
+      post {
+        always {
+          // Relatorio de testes (aba "Test Result")
+          junit testResults: "${env.APP_DIR}/reports/junit/junit.xml",
+                allowEmptyResults: false,
+                skipPublishingChecks: true
+
+          // Cobertura com historico e grafico de tendencia
+          recordCoverage(
+            tools: [[parser: 'COBERTURA', pattern: "${env.APP_DIR}/coverage/cobertura-coverage.xml"]],
+            sourceCodeRetention: 'EVERY_BUILD',
+            qualityGates: [
+              [threshold: 70.0, metric: 'LINE',   baseline: 'PROJECT', criticality: 'UNSTABLE'],
+              [threshold: 60.0, metric: 'BRANCH', baseline: 'PROJECT', criticality: 'UNSTABLE']
+            ]
+          )
+
+          // Relatorio HTML navegavel, linha a linha
+          publishHTML(target: [
+            reportName           : 'Cobertura de Testes',
+            reportDir            : "${env.APP_DIR}/coverage/lcov-report",
+            reportFiles          : 'index.html',
+            keepAll              : true,
+            alwaysLinkToLastBuild: true,
+            allowMissing         : false
+          ])
+        }
+      }
+    }
+
+    stage('Empacotar') {
+      steps {
+        dir(env.APP_DIR) {
+          sh """
+            tar -czf ../${ARTEFATO} -C dist .
+            ls -lh ../${ARTEFATO}
+          """
+        }
+        archiveArtifacts artifacts: env.ARTEFATO, fingerprint: true
+      }
+    }
+
+    stage('Deploy') {
+      when {
+        // Publica apenas a partir da branch principal e se nada falhou de forma grave.
+        allOf {
+          anyOf { branch 'main'; branch 'master' }
+          not { equals expected: 'FAILURE', actual: currentBuild.currentResult }
+        }
+      }
+      steps {
+        sh """
+          mkdir -p ${DEPLOY_DIR}
+          rm -rf ${DEPLOY_DIR}/*
+          tar -xzf ${ARTEFATO} -C ${DEPLOY_DIR}
+          echo "versao=${BUILD_NUMBER}"  > ${DEPLOY_DIR}/VERSION
+          echo "commit=${GIT_SHA}"      >> ${DEPLOY_DIR}/VERSION
+          echo "data=\$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> ${DEPLOY_DIR}/VERSION
+          ls -la ${DEPLOY_DIR}
+        """
+        echo "Deploy concluido em ${DEPLOY_DIR} (build ${env.BUILD_NUMBER}, commit ${env.GIT_SHA})"
+      }
+    }
+  }
+
+  post {
+    always {
+      echo "Resultado final: ${currentBuild.currentResult}"
+    }
+    unstable {
+      echo 'Build UNSTABLE: ha teste falhando ou cobertura abaixo do minimo. Veja "Test Result" e "Coverage".'
+    }
+    failure {
+      echo 'Build FALHOU: o deploy nao foi executado.'
+    }
+    cleanup {
+      cleanWs(deleteDirs: true, notFailBuild: true)
+    }
+  }
+}

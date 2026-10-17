@@ -1,4 +1,7 @@
-import { login, initials, resetUsuarios, ApiError, ROLE_LABELS, STORAGE_KEYS } from './api';
+import {
+  login, initials, resetUsuarios, ApiError, ROLE_LABELS, STORAGE_KEYS,
+  listarDispositivos, resetDispositivos, STATUS_LABELS,
+} from './api';
 
 /*
  * Testes unitarios SEM mock.
@@ -9,8 +12,9 @@ import { login, initials, resetUsuarios, ApiError, ROLE_LABELS, STORAGE_KEYS } f
  */
 
 beforeEach(() => {
-  // Isola os cenarios: cada teste comeca com a lista de usuarios original.
+  // Isola os cenarios: cada teste comeca com os dados originais.
   resetUsuarios();
+  resetDispositivos();
 });
 
 describe('initials', () => {
@@ -135,5 +139,108 @@ describe('resetUsuarios', () => {
     await expect(login('lucas@inatel.br', '123456')).resolves.toMatchObject({
       user: { name: 'Lucas Nolasco Ynoguti' },
     });
+  });
+});
+
+describe('STATUS_LABELS', () => {
+  it('traduz as situacoes do enum de dispositivos do backend', () => {
+    expect(STATUS_LABELS.AVAILABLE).toBe('Disponivel');
+    expect(STATUS_LABELS.LOANED).toBe('Emprestado');
+    expect(STATUS_LABELS.MAINTENANCE).toBe('Em manutencao');
+  });
+});
+
+describe('listarDispositivos - sem filtro', () => {
+  it('devolve o inventario completo', async () => {
+    const itens = await listarDispositivos();
+
+    expect(itens).toHaveLength(8);
+    expect(itens[0]).toEqual(
+      expect.objectContaining({ patrimonio: 'IOT-0001', status: 'LOANED' }),
+    );
+  });
+
+  it('cada item traz os campos que a tela precisa', async () => {
+    const [item] = await listarDispositivos();
+
+    ['id', 'nome', 'patrimonio', 'categoria', 'laboratorio', 'status'].forEach((campo) => {
+      expect(item).toHaveProperty(campo);
+    });
+  });
+
+  it('usa apenas situacoes previstas no enum', async () => {
+    const itens = await listarDispositivos();
+    const validas = Object.keys(STATUS_LABELS);
+
+    expect(itens.every((d) => validas.includes(d.status))).toBe(true);
+  });
+});
+
+describe('listarDispositivos - filtro por situacao', () => {
+  it('devolve somente os disponiveis', async () => {
+    const itens = await listarDispositivos({ status: 'AVAILABLE' });
+
+    expect(itens.length).toBeGreaterThan(0);
+    expect(itens.every((d) => d.status === 'AVAILABLE')).toBe(true);
+  });
+
+  it('devolve somente os que estao em manutencao', async () => {
+    const itens = await listarDispositivos({ status: 'MAINTENANCE' });
+
+    expect(itens.every((d) => d.status === 'MAINTENANCE')).toBe(true);
+  });
+});
+
+describe('listarDispositivos - busca', () => {
+  it('encontra por parte do nome, ignorando a caixa', async () => {
+    const itens = await listarDispositivos({ q: 'ESP32' });
+
+    expect(itens).toHaveLength(1);
+    expect(itens[0].nome).toBe('ESP32 DevKit v1');
+  });
+
+  it('encontra por patrimonio', async () => {
+    const itens = await listarDispositivos({ q: 'net-0001' });
+
+    expect(itens[0].nome).toBe('Switch Cisco Catalyst 2960');
+  });
+
+  it('ignora acentos na busca por laboratorio', async () => {
+    const itens = await listarDispositivos({ q: 'robótica' });
+
+    expect(itens.length).toBeGreaterThan(0);
+    expect(itens.every((d) => d.laboratorio.includes('Robotica'))).toBe(true);
+  });
+
+  it('combina busca e situacao', async () => {
+    const itens = await listarDispositivos({ q: 'Laboratorio de IoT', status: 'AVAILABLE' });
+
+    expect(itens.every((d) => d.laboratorio === 'Laboratorio de IoT' && d.status === 'AVAILABLE')).toBe(true);
+  });
+});
+
+describe('listarDispositivos - casos negativos', () => {
+  it('devolve lista vazia quando nada casa com a busca', async () => {
+    const itens = await listarDispositivos({ q: 'equipamento-que-nao-existe' });
+
+    expect(itens).toEqual([]);
+  });
+
+  it('devolve lista vazia para situacao inexistente', async () => {
+    const itens = await listarDispositivos({ q: '', status: 'DESCARTADO' });
+
+    expect(itens).toEqual([]);
+  });
+
+  it('nao quebra quando recebe filtros nulos', async () => {
+    await expect(listarDispositivos({})).resolves.toHaveLength(8);
+  });
+});
+
+describe('resetDispositivos', () => {
+  it('restaura o inventario para o estado inicial', async () => {
+    resetDispositivos();
+
+    await expect(listarDispositivos()).resolves.toHaveLength(8);
   });
 });

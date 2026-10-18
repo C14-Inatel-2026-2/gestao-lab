@@ -3,10 +3,7 @@ import userEvent from '@testing-library/user-event';
 import LoginPage from './LoginPage';
 import { useAuth } from './AuthContext';
 
-/*
- * ============================================================================
- * ESTE TESTE FALHA DE PROPOSITO.
- * ============================================================================
+/* ESTE TESTE FALHA DE PROPOSITO.
  *
  * Ele nao esta quebrado: ele documenta um requisito de seguranca que a tela
  * ainda NAO implementa. E o estado "vermelho" do ciclo do TDD - primeiro
@@ -25,7 +22,6 @@ import { useAuth } from './AuthContext';
  *     else if (senha.length < 6) novos.senha = 'A senha deve ter no minimo 6 caracteres.';
  *
  * Mantido vermelho de proposito para evidenciar a lacuna.
- * ============================================================================
  */
 
 jest.mock('./AuthContext', () => ({ useAuth: jest.fn() }));

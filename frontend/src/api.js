@@ -1,9 +1,4 @@
-/**
- * Autenticacao, inventario e constantes compartilhadas.
- *
- * USE_MOCK = true  -> dados em memoria (roda sem backend)
- * USE_MOCK = false -> backend Spring Boot em API_URL
- */
+/** Autenticacao, inventario e constantes compartilhadas.*/
 
 export const USE_MOCK = true;
 const API_URL = 'http://localhost:8080/api';
@@ -43,7 +38,6 @@ const normalizar = (v) =>
 const combina = (termo, ...valores) =>
   !normalizar(termo) || valores.some((v) => normalizar(v).includes(normalizar(termo)));
 
-/* ---------------- Backend real ---------------- */
 
 /** Unico ponto de fetch: injeta JSON e traduz erro do Spring em ApiError. */
 async function requisitar(caminho, opcoes = {}) {
@@ -69,7 +63,7 @@ async function requisitar(caminho, opcoes = {}) {
   return dados;
 }
 
-/* ---------------- Dados em memoria ---------------- */
+/* Dados em memoria  */
 
 const criarUsuarios = () => [
   { id: 1, name: 'Solange Ribeiro da Fonseca', email: 'solange@inatel.br', role: 'ADMIN', registration: 'GEC-1001', active: true },
@@ -107,7 +101,7 @@ export const CONTAS_DEMO = criarUsuarios()
 // Pequeno atraso para a interface exercitar o estado de carregando.
 const atraso = () => new Promise((r) => setTimeout(r, 150));
 
-/* ---------------- Usado pela interface ---------------- */
+/* Usado pela interface */
 
 export async function login(email, password) {
   if (!USE_MOCK) {

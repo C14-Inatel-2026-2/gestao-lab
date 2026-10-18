@@ -30,7 +30,7 @@ pipeline {
         stage('Build') {
             steps {
                 dir(env.BACKEND_DIR) {
-                    sh 'mvnw.cmd package -DskipTests'
+                    bat 'mvnw.cmd package -DskipTests'
                 }
             }
         }

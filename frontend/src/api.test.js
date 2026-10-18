@@ -1,11 +1,6 @@
 import { login, ApiError, resetUsuarios } from './api';
 
-/*
- * Testes unitarios SEM mock.
- *
- * Exercitam a funcao login e a classe ApiError com as implementacoes reais
- * de api.js - nenhum duble, nenhum jest.mock.
- */
+/* Testes unitarios SEM mock.*/
 
 beforeEach(() => {
   resetUsuarios();

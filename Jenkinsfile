@@ -12,18 +12,25 @@ pipeline {
             }
         }
 
-        stage('Test') {
-            steps {
-                dir(env.BACKEND_DIR) {
-                    bat 'mvnw.cmd test'
-                }
+    stage('Test') {
+        steps {
+            dir(env.BACKEND_DIR) {
+                bat 'mvnw.cmd test'
             }
         }
-
+        post {
+            always {
+                junit(
+                    allowEmptyResults: true,
+                    testResults: 'backend/target/surefire-reports/TEST-*.xml'
+                )
+            }
+        }
+    }
         stage('Build') {
             steps {
                 dir(env.BACKEND_DIR) {
-                    bat 'mvnw.cmd package -DskipTests'
+                    sh 'mvnw.cmd package -DskipTests'
                 }
             }
         }

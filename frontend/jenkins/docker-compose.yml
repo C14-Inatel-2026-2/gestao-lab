@@ -1,0 +1,14 @@
+services:
+  jenkins:
+    build: .
+    container_name: jenkins-gestao-lab
+    ports:
+      - "8081:8080"   # interface web
+      - "50000:50000" # agentes
+    volumes:
+      - jenkins_home:/var/jenkins_home
+    environment:
+      JAVA_OPTS: -Djenkins.install.runSetupWizard=true
+
+volumes:
+  jenkins_home:

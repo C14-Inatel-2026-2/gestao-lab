@@ -16,13 +16,13 @@ jest.mock('./AuthContext', () => ({ useAuth: jest.fn() }));
 jest.mock('./api', () => ({
   listarDispositivos: jest.fn(),
   ROLE_LABELS: { ADMIN: 'Administrador', PARTICIPANT: 'Participante' },
-  STATUS_LABELS: { AVAILABLE: 'Disponivel', LOANED: 'Emprestado', MAINTENANCE: 'Em manutencao' },
+  STATUS_LABELS: { AVAILABLE: 'Disponivel', BORROWED: 'Emprestado', MAINTENANCE: 'Em manutencao' },
   initials: () => 'SF',
 }));
 
 const ITENS = [
   { id: 1, nome: 'ESP32 DevKit v1', patrimonio: 'IOT-0002', categoria: 'Placa', laboratorio: 'Laboratorio de IoT', status: 'AVAILABLE' },
-  { id: 2, nome: 'Servo Motor MG996R', patrimonio: 'ROB-0001', categoria: 'Atuador', laboratorio: 'Laboratorio de Robotica', status: 'LOANED' },
+  { id: 2, nome: 'Servo Motor MG996R', patrimonio: 'ROB-0001', categoria: 'Atuador', laboratorio: 'Laboratorio de Robotica', status: 'BORROWED' },
 ];
 
 beforeEach(() => {

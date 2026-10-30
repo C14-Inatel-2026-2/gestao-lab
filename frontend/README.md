@@ -6,7 +6,7 @@ apenas a autenticação.
 
 **5 testes** em 3 suítes, com Jest + React Testing Library.
 
-73 passam, 1 falha de propósito.
+4 passam, 1 falha de propósito.
 
 ---
 
@@ -113,7 +113,7 @@ Pipeline declarativo em [`Jenkinsfile`](Jenkinsfile). **Não usa GitHub Actions.
 ### Relatórios visíveis no Jenkins
 
 **Relatório de testes** — aba *Test Result*, alimentada por `reports/junit/junit.xml`
-(gerado pelo `jest-junit`). Mostra os 46 casos, quais passaram e a mensagem de cada falha.
+(gerado pelo `jest-junit`). Mostra os 5 casos, quais passaram e a mensagem de cada falha.
 
 **Cobertura** — em dois lugares:
 
@@ -123,8 +123,11 @@ Pipeline declarativo em [`Jenkinsfile`](Jenkinsfile). **Não usa GitHub Actions.
 - *Cobertura de Testes* (plugin HTML Publisher), o relatório HTML navegável
   linha a linha.
 
-Cobertura atual: **85,53% instruções · 87,40% linhas · 74,39% branches · 95,74% funções**.
-As duas telas, o `App` e o `AuthContext` estão em **100% de linhas**.
+Cobertura atual: a mesma reportada em [Cobertura](#cobertura) — **54,88% linhas ·
+53,94% instruções · 45,12% branches · 60,41% funções**. Com isso o quality gate
+passa por pouco: 54,88% contra o mínimo de 50% em linhas e 45,12% contra 40% em
+branches. Qualquer código novo sem teste derruba o build para `UNSTABLE` por
+cobertura, e não pelo teste vermelho.
 
 ### Sobre o teste vermelho
 

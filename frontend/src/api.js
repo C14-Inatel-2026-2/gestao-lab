@@ -10,7 +10,7 @@ export const ROLE_LABELS = { ADMIN: 'Administrador', PARTICIPANT: 'Participante'
 /** Situacao do equipamento, espelhando o enum de br.inatel.devices */
 export const STATUS_LABELS = {
   AVAILABLE: 'Disponivel',
-  LOANED: 'Emprestado',
+  BORROWED: 'Emprestado',
   MAINTENANCE: 'Em manutencao',
 };
 
@@ -33,7 +33,7 @@ export function initials(name) {
 
 /** Compara ignorando acento e caixa. */
 const normalizar = (v) =>
-  String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  String(v ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 
 const combina = (termo, ...valores) =>
   !normalizar(termo) || valores.some((v) => normalizar(v).includes(normalizar(termo)));
@@ -76,11 +76,11 @@ const criarUsuarios = () => [
 ];
 
 const criarDispositivos = () => [
-  { id: 1, nome: 'Raspberry Pi 4 Model B', patrimonio: 'IOT-0001', categoria: 'Placa', laboratorio: 'Laboratorio de IoT', status: 'LOANED' },
+  { id: 1, nome: 'Raspberry Pi 4 Model B', patrimonio: 'IOT-0001', categoria: 'Placa', laboratorio: 'Laboratorio de IoT', status: 'BORROWED' },
   { id: 2, nome: 'ESP32 DevKit v1', patrimonio: 'IOT-0002', categoria: 'Placa', laboratorio: 'Laboratorio de IoT', status: 'AVAILABLE' },
   { id: 3, nome: 'Sensor BME280', patrimonio: 'IOT-0003', categoria: 'Sensor', laboratorio: 'Laboratorio de IoT', status: 'AVAILABLE' },
   { id: 4, nome: 'Modulo LoRa SX1276', patrimonio: 'IOT-0004', categoria: 'Modulo', laboratorio: 'Laboratorio de IoT', status: 'MAINTENANCE' },
-  { id: 5, nome: 'Switch Cisco Catalyst 2960', patrimonio: 'NET-0001', categoria: 'Rede', laboratorio: 'Laboratorio de Redes', status: 'LOANED' },
+  { id: 5, nome: 'Switch Cisco Catalyst 2960', patrimonio: 'NET-0001', categoria: 'Rede', laboratorio: 'Laboratorio de Redes', status: 'BORROWED' },
   { id: 6, nome: 'Roteador Mikrotik hEX', patrimonio: 'NET-0002', categoria: 'Rede', laboratorio: 'Laboratorio de Redes', status: 'AVAILABLE' },
   { id: 7, nome: 'Servo Motor MG996R', patrimonio: 'ROB-0001', categoria: 'Atuador', laboratorio: 'Laboratorio de Robotica', status: 'AVAILABLE' },
   { id: 8, nome: 'Fonte de Bancada 30V/5A', patrimonio: 'ROB-0002', categoria: 'Instrumento', laboratorio: 'Laboratorio de Robotica', status: 'MAINTENANCE' },

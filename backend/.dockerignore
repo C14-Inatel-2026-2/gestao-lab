@@ -1,0 +1,5 @@
+*
+!Dockerfile
+!target/
+target/*
+!target/backend-1.0-SNAPSHOT.jar

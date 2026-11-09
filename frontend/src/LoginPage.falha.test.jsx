@@ -3,25 +3,18 @@ import userEvent from '@testing-library/user-event';
 import LoginPage from './LoginPage';
 import { useAuth } from './AuthContext';
 
-/* ESTE TESTE FALHA DE PROPOSITO.
+/* CICLO TDD FECHADO: este teste foi escrito vermelho e agora esta verde.
  *
- * Ele nao esta quebrado: ele documenta um requisito de seguranca que a tela
- * ainda NAO implementa. E o estado "vermelho" do ciclo do TDD - primeiro
- * escreve-se o teste que descreve o comportamento desejado, depois o codigo
- * que o satisfaz.
+ * Ele nasceu como o estado "vermelho" do ciclo do TDD, documentando um
+ * requisito de seguranca que a tela ainda nao implementava: recusar senhas
+ * com menos de SENHA_MIN caracteres sem chegar a chamar a API.
  *
- * REQUISITO: a tela deve recusar senhas com menos de 6 caracteres, sem chegar
- * a chamar a API.
+ * A validacao foi implementada em validar(), em src/LoginPage.jsx, e o teste
+ * passou a ser o teste de regressao desse requisito: se a regra for removida
+ * ou afrouxada, ele volta a falhar.
  *
- * COMPORTAMENTO ATUAL: a funcao validar() da LoginPage so verifica se a senha
- * esta vazia (`if (!senha)`), entao "123" passa e o login e chamado.
- *
- * PARA FICAR VERDE, basta acrescentar em validar(), em src/LoginPage.jsx:
- *
- *     if (!senha) novos.senha = 'Informe a senha.';
- *     else if (senha.length < 6) novos.senha = 'A senha deve ter no minimo 6 caracteres.';
- *
- * Mantido vermelho de proposito para evidenciar a lacuna.
+ * O nome do arquivo foi mantido para preservar a rastreabilidade com a
+ * entrega de testes, em que ele constava como o caso vermelho.
  */
 
 jest.mock('./AuthContext', () => ({ useAuth: jest.fn() }));

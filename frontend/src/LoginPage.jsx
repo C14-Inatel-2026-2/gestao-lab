@@ -3,6 +3,9 @@ import { useAuth } from './AuthContext';
 import { USE_MOCK, ROLE_LABELS, CONTAS_DEMO } from './api';
 
 
+/** Tamanho minimo da senha aceito pelo formulario. */
+const SENHA_MIN = 6;
+
 /** Campo de formulario com rotulo e mensagem de erro. */
 function Campo({ id, label, erro, ...props }) {
   return (
@@ -26,6 +29,7 @@ export default function LoginPage() {
     if (!email.trim()) novos.email = 'Informe o email institucional.';
     else if (!/^\S+@\S+\.\S+$/.test(email.trim())) novos.email = 'Email invalido.';
     if (!senha) novos.senha = 'Informe a senha.';
+    else if (senha.length < SENHA_MIN) novos.senha = `A senha deve ter no minimo ${SENHA_MIN} caracteres.`;
     setErros(novos);
     return Object.keys(novos).length === 0;
   }

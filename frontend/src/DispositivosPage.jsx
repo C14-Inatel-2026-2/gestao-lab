@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from './AuthContext';
-import { listarDispositivos, ROLE_LABELS, STATUS_LABELS, initials } from './api';
+import { ROLE_LABELS, STATUS_LABELS, initials } from './api';
+import { useDispositivos } from './useDispositivos';
 
 const COLUNAS = [
   ['Dispositivo', 'nome'],
@@ -12,24 +13,9 @@ const COLUNAS = [
 /** Inventario de equipamentos, com busca e filtro por situacao. */
 export default function DispositivosPage() {
   const { user, logout, isAdmin } = useAuth();
-  const [itens, setItens] = useState([]);
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
-  const [carregando, setCarregando] = useState(true);
-  const [erro, setErro] = useState('');
-
-  useEffect(() => {
-    let ativo = true;
-    setCarregando(true);
-    setErro('');
-
-    listarDispositivos({ q, status })
-      .then((dados) => ativo && setItens(dados))
-      .catch((e) => ativo && setErro(e.message || 'Nao foi possivel carregar o inventario.'))
-      .finally(() => ativo && setCarregando(false));
-
-    return () => { ativo = false; };
-  }, [q, status]);
+  const { itens, carregando, erro } = useDispositivos({ q, status });
 
   const disponiveis = itens.filter((d) => d.status === 'AVAILABLE').length;
 

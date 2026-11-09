@@ -2,16 +2,25 @@
 
 export const USE_MOCK = true;
 const API_URL = 'http://localhost:8080/api';
-const SENHA_PADRAO = '123456';
+
+/** Senha unica das contas do ambiente de demonstracao. */
+export const SENHA_PADRAO = '123456';
 
 /** Perfis de acesso, espelhando o enum Role do backend */
 export const ROLE_LABELS = { ADMIN: 'Administrador', PARTICIPANT: 'Participante' };
 
-/** Situacao do equipamento, espelhando o enum de br.inatel.devices */
+/** Situacao do equipamento, espelhando o enum DeviceStatus de br.inatel.devices */
+export const STATUS = {
+  AVAILABLE: 'AVAILABLE',
+  BORROWED: 'BORROWED',
+  MAINTENANCE: 'MAINTENANCE',
+};
+
+/** Rotulo exibido para cada situacao, derivado de STATUS - fonte unica. */
 export const STATUS_LABELS = {
-  AVAILABLE: 'Disponivel',
-  BORROWED: 'Emprestado',
-  MAINTENANCE: 'Em manutencao',
+  [STATUS.AVAILABLE]: 'Disponivel',
+  [STATUS.BORROWED]: 'Emprestado',
+  [STATUS.MAINTENANCE]: 'Em manutencao',
 };
 
 export const STORAGE_KEYS = { TOKEN: 'gestao-lab:token', USER: 'gestao-lab:user' };

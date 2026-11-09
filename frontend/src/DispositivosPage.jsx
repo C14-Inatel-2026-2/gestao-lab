@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from './AuthContext';
-import { ROLE_LABELS, STATUS_LABELS, initials } from './api';
+import { ROLE_LABELS, STATUS, STATUS_LABELS, initials } from './api';
 import { useDispositivos } from './useDispositivos';
 
 const COLUNAS = [
@@ -17,7 +17,7 @@ export default function DispositivosPage() {
   const [status, setStatus] = useState('');
   const { itens, carregando, erro } = useDispositivos({ q, status });
 
-  const disponiveis = itens.filter((d) => d.status === 'AVAILABLE').length;
+  const disponiveis = itens.filter((d) => d.status === STATUS.AVAILABLE).length;
 
   return (
     <div className="app">

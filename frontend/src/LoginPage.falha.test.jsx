@@ -21,6 +21,7 @@ jest.mock('./AuthContext', () => ({ useAuth: jest.fn() }));
 
 jest.mock('./api', () => ({
   USE_MOCK: true,
+  SENHA_PADRAO: '123456',
   ROLE_LABELS: { ADMIN: 'Administrador', PARTICIPANT: 'Participante' },
   CONTAS_DEMO: [
     { name: 'Solange Ribeiro da Fonseca', email: 'solange@inatel.br', role: 'ADMIN' },

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from './AuthContext';
-import { USE_MOCK, ROLE_LABELS, CONTAS_DEMO } from './api';
+import { USE_MOCK, ROLE_LABELS, CONTAS_DEMO, SENHA_PADRAO } from './api';
 
 
 /** Tamanho minimo da senha aceito pelo formulario. */
@@ -48,7 +48,7 @@ export default function LoginPage() {
 
   function preencher(conta) {
     setEmail(conta.email);
-    setSenha('123456');
+    setSenha(SENHA_PADRAO);
     setErros({});
     setErroGeral('');
   }
@@ -101,7 +101,7 @@ export default function LoginPage() {
           {USE_MOCK && (
             <div className="demo">
               <strong>Ambiente de demonstracao</strong>
-              <p className="demo__sub">Senha para todos: <code>123456</code></p>
+              <p className="demo__sub">Senha para todos: <code>{SENHA_PADRAO}</code></p>
               <ul className="demo__lista">
                 {CONTAS_DEMO.map((conta) => (
                   <li key={conta.email}>

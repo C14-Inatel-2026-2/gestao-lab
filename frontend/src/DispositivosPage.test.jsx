@@ -16,6 +16,7 @@ jest.mock('./AuthContext', () => ({ useAuth: jest.fn() }));
 jest.mock('./api', () => ({
   listarDispositivos: jest.fn(),
   ROLE_LABELS: { ADMIN: 'Administrador', PARTICIPANT: 'Participante' },
+  STATUS: { AVAILABLE: 'AVAILABLE', BORROWED: 'BORROWED', MAINTENANCE: 'MAINTENANCE' },
   STATUS_LABELS: { AVAILABLE: 'Disponivel', BORROWED: 'Emprestado', MAINTENANCE: 'Em manutencao' },
   initials: () => 'SF',
 }));

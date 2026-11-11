@@ -8,7 +8,7 @@ import br.inatel.users.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
+
 
 @Service
 public class UserService {
@@ -17,10 +17,12 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final TokenService tokenService;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, TokenService tokenService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.tokenService = tokenService;
     }
 
     public boolean isEmailAvailable(String email) {
@@ -103,7 +105,7 @@ public class UserService {
      */
     public LoginResponse authenticate(String email, String password) {
         User user = validateCredentials(email, password);
-        String token = UUID.randomUUID().toString();
+        String token = tokenService.issue(user);
         return new LoginResponse(token, user.getId(), user.getName(), user.getEmail(), user.getRole());
     }
 }

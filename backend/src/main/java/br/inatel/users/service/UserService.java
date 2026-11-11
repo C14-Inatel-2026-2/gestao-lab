@@ -5,6 +5,7 @@ import br.inatel.users.exception.InvalidCredentialsException;
 import br.inatel.users.model.Role;
 import br.inatel.users.model.User;
 import br.inatel.users.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
@@ -15,9 +16,11 @@ public class UserService {
     private static final int MIN_PASSWORD_LENGTH = 8;
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public boolean isEmailAvailable(String email) {
@@ -41,7 +44,8 @@ public class UserService {
             throw new IllegalArgumentException("Email already registered");
         }
 
-        return userRepository.save(new User(name, email, password, role));
+        String hashedPassword = passwordEncoder.encode(password);
+        return userRepository.save(new User(name, email, hashedPassword, role));
     }
 
     /**
@@ -82,7 +86,7 @@ public class UserService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
 
-        if (!user.getPassword().equals(password)) {
+        if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new InvalidCredentialsException("Invalid email or password");
         }
 

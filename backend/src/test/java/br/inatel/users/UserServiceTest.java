@@ -107,6 +107,42 @@ class UserServiceTest {
     }
 
     @Test
+    void shouldRejectNullNameWhenCreatingUser() {
+        assertThatThrownBy(() -> userService.create(null, "new@inatel.br", "Senha123", Role.PARTICIPANT))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("User name is required");
+
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void shouldRejectBlankNameWhenCreatingUser() {
+        assertThatThrownBy(() -> userService.create("  ", "new@inatel.br", "Senha123", Role.PARTICIPANT))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("User name is required");
+
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void shouldRejectNullEmailWhenCreatingUser() {
+        assertThatThrownBy(() -> userService.create("Lucas", null, "Senha123", Role.PARTICIPANT))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("User email is required");
+
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void shouldRejectNullRoleWhenCreatingUser() {
+        assertThatThrownBy(() -> userService.create("Lucas", "new@inatel.br", "Senha123", null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("User role is required");
+
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
     void shouldRejectInvalidPasswordWhenCreatingUser() {
         assertThatThrownBy(() -> userService.create("Lucas", "new@inatel.br", "fraca", Role.PARTICIPANT))
                 .isInstanceOf(IllegalArgumentException.class)

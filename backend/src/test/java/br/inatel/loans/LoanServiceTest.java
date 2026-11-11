@@ -1,6 +1,7 @@
 package br.inatel.loans;
 
 import br.inatel.labs.model.Laboratory;
+import br.inatel.loans.exception.InvalidLoanException;
 import br.inatel.loans.model.Loan;
 import br.inatel.loans.repository.LoanRepository;
 import br.inatel.loans.service.LoanService;
@@ -9,6 +10,7 @@ import br.inatel.users.model.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.function.Executable;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -44,6 +46,12 @@ class LoanServiceTest {
         end = LocalDateTime.of(2026, 9, 15, 10, 0);
     }
 
+    private void assertInvalidLoan(String expectedMessage, Executable action) {
+        InvalidLoanException exception = assertThrows(InvalidLoanException.class, action);
+        assertEquals(expectedMessage, exception.getMessage());
+        verifyNoInteractions(repository);
+    }
+
     @Test
     void shouldCreateValidLoan() {
         when(repository.save(any(Loan.class)))
@@ -59,46 +67,38 @@ class LoanServiceTest {
 
     @Test
     void shouldRejectNullUser() {
-        assertThrows(IllegalArgumentException.class,
+        assertInvalidLoan("User must not be null",
                 () -> service.create(null, laboratory, start, end));
-        verifyNoInteractions(repository);
     }
 
     @Test
     void shouldRejectNullLaboratory() {
-        assertThrows(IllegalArgumentException.class,
+        assertInvalidLoan("Laboratory must not be null",
                 () -> service.create(user, null, start, end));
-        verifyNoInteractions(repository);
     }
 
     @Test
     void shouldRejectNullStartDateTime() {
-        assertThrows(IllegalArgumentException.class,
+        assertInvalidLoan("Start date/time must not be null",
                 () -> service.create(user, laboratory, null, end));
-        verifyNoInteractions(repository);
     }
 
     @Test
     void shouldRejectNullEndDateTime() {
-        assertThrows(IllegalArgumentException.class,
+        assertInvalidLoan("End date/time must not be null",
                 () -> service.create(user, laboratory, start, null));
-        verifyNoInteractions(repository);
     }
 
     @Test
     void shouldRejectEndDateTimeBeforeStartDateTime() {
-        LocalDateTime invalidEnd = start.minusHours(1);
-
-        assertThrows(IllegalArgumentException.class,
-                () -> service.create(user, laboratory, start, invalidEnd));
-        verifyNoInteractions(repository);
+        assertInvalidLoan("End date/time must be after start date/time",
+                () -> service.create(user, laboratory, start, start.minusHours(1)));
     }
 
     @Test
     void shouldRejectEndDateTimeEqualToStartDateTime() {
-        assertThrows(IllegalArgumentException.class,
+        assertInvalidLoan("End date/time must be after start date/time",
                 () -> service.create(user, laboratory, start, start));
-        verifyNoInteractions(repository);
     }
 
     @Test

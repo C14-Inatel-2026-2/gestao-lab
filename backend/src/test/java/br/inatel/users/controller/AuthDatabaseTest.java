@@ -6,7 +6,6 @@ import br.inatel.users.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,15 +19,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-// Use only a disposable database: Hibernate creates and drops the schema for this test.
-@EnabledIfEnvironmentVariable(named = "RF01_TEST_DATABASE_URL", matches = "jdbc:postgresql:.*")
+// This database lives in the system temporary directory and is recreated for each test context.
 @SpringBootTest(properties = {
-        "spring.datasource.url=${RF01_TEST_DATABASE_URL}",
-        "spring.datasource.username=${RF01_TEST_DATABASE_USER}",
-        "spring.datasource.password=${RF01_TEST_DATABASE_PASSWORD}",
-        "spring.datasource.driver-class-name=org.postgresql.Driver",
-        "spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect",
-        "spring.jpa.hibernate.ddl-auto=create-drop"
+        "spring.datasource.url=jdbc:sqlite:${java.io.tmpdir}/gestao-lab-auth-database-test.db",
+        "spring.datasource.driver-class-name=org.sqlite.JDBC",
+        "spring.jpa.database-platform=org.hibernate.community.dialect.SQLiteDialect",
+        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "spring.datasource.hikari.maximum-pool-size=1"
 })
 @AutoConfigureMockMvc
 @Transactional

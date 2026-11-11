@@ -13,12 +13,11 @@ import { listarDispositivos } from './api';
 
 jest.mock('./AuthContext', () => ({ useAuth: jest.fn() }));
 
+// Apenas listarDispositivos e dublado: as constantes vem do api.js real, para o
+// teste nao passar com um enum defasado se DeviceStatus mudar no backend.
 jest.mock('./api', () => ({
+  ...jest.requireActual('./api'),
   listarDispositivos: jest.fn(),
-  ROLE_LABELS: { ADMIN: 'Administrador', PARTICIPANT: 'Participante' },
-  STATUS: { AVAILABLE: 'AVAILABLE', BORROWED: 'BORROWED', MAINTENANCE: 'MAINTENANCE' },
-  STATUS_LABELS: { AVAILABLE: 'Disponivel', BORROWED: 'Emprestado', MAINTENANCE: 'Em manutencao' },
-  initials: () => 'SF',
 }));
 
 const ITENS = [

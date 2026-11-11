@@ -3,18 +3,9 @@ import userEvent from '@testing-library/user-event';
 import LoginPage from './LoginPage';
 import { useAuth } from './AuthContext';
 
-/* CICLO TDD FECHADO: este teste foi escrito vermelho e agora esta verde.
- *
- * Ele nasceu como o estado "vermelho" do ciclo do TDD, documentando um
- * requisito de seguranca que a tela ainda nao implementava: recusar senhas
- * com menos de SENHA_MIN caracteres sem chegar a chamar a API.
- *
- * A validacao foi implementada em validar(), em src/LoginPage.jsx, e o teste
- * passou a ser o teste de regressao desse requisito: se a regra for removida
- * ou afrouxada, ele volta a falhar.
- *
- * O nome do arquivo foi mantido para preservar a rastreabilidade com a
- * entrega de testes, em que ele constava como o caso vermelho.
+/* Ciclo TDD fechado: nasceu vermelho (senha curta nao era barrada) e virou verde
+ * com a validacao em validar(), em LoginPage.jsx. Hoje e o teste de regressao
+ * dessa regra. O nome do arquivo foi mantido para rastrear a entrega de testes.
  */
 
 jest.mock('./AuthContext', () => ({ useAuth: jest.fn() }));
@@ -43,7 +34,7 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
-describe('LoginPage - requisito pendente (teste vermelho)', () => {
+describe('LoginPage - validacao de senha minima', () => {
   it('deve recusar senha com menos de 6 caracteres, sem chamar a API', async () => {
     // Arranjo
     const user = userEvent.setup();
@@ -54,7 +45,7 @@ describe('LoginPage - requisito pendente (teste vermelho)', () => {
     await user.type(screen.getByLabelText('Senha'), '123');
     await user.click(screen.getByRole('button', { name: 'Entrar' }));
 
-    // Verificacao: a tela deveria barrar antes de chegar na API
+    // Verificacao: a tela barra antes de chegar na API
     expect(screen.getByText('A senha deve ter no minimo 6 caracteres.')).toBeInTheDocument();
     expect(loginSimulado).not.toHaveBeenCalled();
   });

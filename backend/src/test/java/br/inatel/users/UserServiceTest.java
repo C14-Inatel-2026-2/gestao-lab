@@ -6,6 +6,7 @@ import br.inatel.users.model.Role;
 import br.inatel.users.model.User;
 import br.inatel.users.repository.UserRepository;
 import br.inatel.users.service.UserService;
+import br.inatel.users.service.TokenService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -31,6 +32,9 @@ class UserServiceTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private TokenService tokenService;
 
     @InjectMocks
     private UserService userService;
@@ -191,6 +195,8 @@ class UserServiceTest {
         User user = new User("Lucas", "lucas@inatel.br", "$2a$10$hashed", Role.ADMIN);
         when(userRepository.findByEmail("lucas@inatel.br")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("Senha123", "$2a$10$hashed")).thenReturn(true);
+
+        when(tokenService.issue(user)).thenReturn("valid-token");
 
         LoginResponse response = userService.authenticate("lucas@inatel.br", "Senha123");
 

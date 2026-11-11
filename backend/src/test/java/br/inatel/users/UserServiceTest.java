@@ -1,5 +1,6 @@
 package br.inatel.users;
 
+import br.inatel.users.dto.LoginResponse;
 import br.inatel.users.model.Role;
 import br.inatel.users.model.User;
 import br.inatel.users.repository.UserRepository;
@@ -111,5 +112,49 @@ class UserServiceTest {
     @Test
     void shouldRejectPasswordWithExactlySevenCharacters() {
         assertThat(userService.isPasswordValid("Senha12")).isFalse();
+    }
+
+    @Test
+    void shouldAuthenticateSuccessfullyWhenCredentialsAreValid() {
+        User user = new User("Lucas", "lucas@inatel.br", "Senha123", Role.ADMIN);
+        when(userRepository.findByEmail("lucas@inatel.br")).thenReturn(Optional.of(user));
+
+        LoginResponse response = userService.authenticate("lucas@inatel.br", "Senha123");
+
+        assertThat(response).isNotNull();
+        assertThat(response.token()).isNotNull().isNotBlank();
+        assertThat(response.name()).isEqualTo("Lucas");
+        assertThat(response.email()).isEqualTo("lucas@inatel.br");
+        assertThat(response.role()).isEqualTo(Role.ADMIN);
+    }
+
+    @Test
+    void shouldRejectAuthenticationWhenUserDoesNotExist() {
+        when(userRepository.findByEmail("inexistente@inatel.br")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> userService.authenticate("inexistente@inatel.br", "Senha123"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Invalid email or password");
+    }
+
+    @Test
+    void shouldRejectAuthenticationWhenPasswordDoesNotMatch() {
+        User user = new User("Lucas", "lucas@inatel.br", "Senha123", Role.ADMIN);
+        when(userRepository.findByEmail("lucas@inatel.br")).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> userService.authenticate("lucas@inatel.br", "SenhaErrada"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Invalid email or password");
+    }
+
+    @Test
+    void shouldRejectAuthenticationWhenEmailOrPasswordIsBlank() {
+        assertThatThrownBy(() -> userService.authenticate("", "Senha123"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("User email is required");
+
+        assertThatThrownBy(() -> userService.authenticate("lucas@inatel.br", "  "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("User password is required");
     }
 }

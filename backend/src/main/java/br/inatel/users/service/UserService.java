@@ -1,6 +1,7 @@
 package br.inatel.users.service;
 
 import br.inatel.users.dto.LoginResponse;
+import br.inatel.users.exception.InvalidCredentialsException;
 import br.inatel.users.model.Role;
 import br.inatel.users.model.User;
 import br.inatel.users.repository.UserRepository;
@@ -64,6 +65,31 @@ public class UserService {
     }
 
     /**
+     * Validates user credentials against the database.
+     * Prevents email enumeration leakage by throwing the exact same exception
+     * when the email does not exist or the password does not match.
+     *
+     * @param email user email
+     * @param password user password
+     * @return the authenticated User domain model
+     * @throws InvalidCredentialsException if credentials are invalid or missing
+     */
+    public User validateCredentials(String email, String password) {
+        if (email == null || email.isBlank() || password == null || password.isBlank()) {
+            throw new InvalidCredentialsException("Invalid email or password");
+        }
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
+
+        if (!user.getPassword().equals(password)) {
+            throw new InvalidCredentialsException("Invalid email or password");
+        }
+
+        return user;
+    }
+
+    /**
      * Authenticates a user against credentials stored in the database.
      * Generates a session token upon successful validation.
      *
@@ -72,20 +98,7 @@ public class UserService {
      * @return LoginResponse containing authentication token and user information
      */
     public LoginResponse authenticate(String email, String password) {
-        if (email == null || email.isBlank()) {
-            throw new IllegalArgumentException("User email is required");
-        }
-        if (password == null || password.isBlank()) {
-            throw new IllegalArgumentException("User password is required");
-        }
-
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
-
-        if (!user.getPassword().equals(password)) {
-            throw new IllegalArgumentException("Invalid email or password");
-        }
-
+        User user = validateCredentials(email, password);
         String token = UUID.randomUUID().toString();
         return new LoginResponse(token, user.getId(), user.getName(), user.getEmail(), user.getRole());
     }

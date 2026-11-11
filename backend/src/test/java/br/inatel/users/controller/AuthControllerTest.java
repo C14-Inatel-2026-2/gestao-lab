@@ -2,6 +2,7 @@ package br.inatel.users.controller;
 
 import br.inatel.users.dto.LoginRequest;
 import br.inatel.users.dto.LoginResponse;
+import br.inatel.users.exception.InvalidCredentialsException;
 import br.inatel.users.model.Role;
 import br.inatel.users.service.UserService;
 import org.junit.jupiter.api.DisplayName;
@@ -48,10 +49,10 @@ class AuthControllerTest {
         LoginRequest request = new LoginRequest("lucas@inatel.br", "wrong");
 
         when(userService.authenticate("lucas@inatel.br", "wrong"))
-                .thenThrow(new IllegalArgumentException("Invalid email or password"));
+                .thenThrow(new InvalidCredentialsException("Invalid email or password"));
 
         assertThatThrownBy(() -> authController.login(request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidCredentialsException.class)
                 .hasMessage("Invalid email or password");
     }
 }

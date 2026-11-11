@@ -1,6 +1,7 @@
 package br.inatel.users;
 
 import br.inatel.users.dto.LoginResponse;
+import br.inatel.users.exception.InvalidCredentialsException;
 import br.inatel.users.model.Role;
 import br.inatel.users.model.User;
 import br.inatel.users.repository.UserRepository;
@@ -133,7 +134,7 @@ class UserServiceTest {
         when(userRepository.findByEmail("inexistente@inatel.br")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> userService.authenticate("inexistente@inatel.br", "Senha123"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidCredentialsException.class)
                 .hasMessage("Invalid email or password");
     }
 
@@ -143,18 +144,49 @@ class UserServiceTest {
         when(userRepository.findByEmail("lucas@inatel.br")).thenReturn(Optional.of(user));
 
         assertThatThrownBy(() -> userService.authenticate("lucas@inatel.br", "SenhaErrada"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidCredentialsException.class)
                 .hasMessage("Invalid email or password");
     }
 
     @Test
     void shouldRejectAuthenticationWhenEmailOrPasswordIsBlank() {
         assertThatThrownBy(() -> userService.authenticate("", "Senha123"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("User email is required");
+                .isInstanceOf(InvalidCredentialsException.class)
+                .hasMessage("Invalid email or password");
 
         assertThatThrownBy(() -> userService.authenticate("lucas@inatel.br", "  "))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("User password is required");
+                .isInstanceOf(InvalidCredentialsException.class)
+                .hasMessage("Invalid email or password");
+    }
+
+    @Test
+    void shouldValidateCredentialsSuccessfullyAndReturnUser() {
+        User user = new User("Lucas", "lucas@inatel.br", "Senha123", Role.ADMIN);
+        when(userRepository.findByEmail("lucas@inatel.br")).thenReturn(Optional.of(user));
+
+        User authenticatedUser = userService.validateCredentials("lucas@inatel.br", "Senha123");
+
+        assertThat(authenticatedUser).isNotNull();
+        assertThat(authenticatedUser.getEmail()).isEqualTo("lucas@inatel.br");
+        assertThat(authenticatedUser.getRole()).isEqualTo(Role.ADMIN);
+    }
+
+    @Test
+    void shouldThrowInvalidCredentialsExceptionWhenEmailNotFoundInValidation() {
+        when(userRepository.findByEmail("inexistente@inatel.br")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> userService.validateCredentials("inexistente@inatel.br", "Senha123"))
+                .isInstanceOf(InvalidCredentialsException.class)
+                .hasMessage("Invalid email or password");
+    }
+
+    @Test
+    void shouldThrowInvalidCredentialsExceptionWhenPasswordDoesNotMatchInValidation() {
+        User user = new User("Lucas", "lucas@inatel.br", "Senha123", Role.ADMIN);
+        when(userRepository.findByEmail("lucas@inatel.br")).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> userService.validateCredentials("lucas@inatel.br", "SenhaIncorreta"))
+                .isInstanceOf(InvalidCredentialsException.class)
+                .hasMessage("Invalid email or password");
     }
 }

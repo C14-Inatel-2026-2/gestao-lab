@@ -1,9 +1,12 @@
 package br.inatel.users.service;
 
+import br.inatel.users.dto.LoginResponse;
 import br.inatel.users.model.Role;
 import br.inatel.users.model.User;
 import br.inatel.users.repository.UserRepository;
 import org.springframework.stereotype.Service;
+
+import java.util.UUID;
 
 @Service
 public class UserService {
@@ -58,5 +61,32 @@ public class UserService {
         boolean hasDigit = password.chars().anyMatch(Character::isDigit);
         boolean hasUpperCase = password.chars().anyMatch(Character::isUpperCase);
         return hasDigit && hasUpperCase;
+    }
+
+    /**
+     * Authenticates a user against credentials stored in the database.
+     * Generates a session token upon successful validation.
+     *
+     * @param email user email
+     * @param password user password
+     * @return LoginResponse containing authentication token and user information
+     */
+    public LoginResponse authenticate(String email, String password) {
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("User email is required");
+        }
+        if (password == null || password.isBlank()) {
+            throw new IllegalArgumentException("User password is required");
+        }
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
+
+        if (!user.getPassword().equals(password)) {
+            throw new IllegalArgumentException("Invalid email or password");
+        }
+
+        String token = UUID.randomUUID().toString();
+        return new LoginResponse(token, user.getId(), user.getName(), user.getEmail(), user.getRole());
     }
 }

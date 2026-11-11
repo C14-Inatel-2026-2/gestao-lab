@@ -59,6 +59,50 @@ class AuthDatabaseTest {
     }
 
     @Test
+    void publicRegistrationCreatesParticipantAndAllowsLogin() throws Exception {
+        var result = mvc.perform(post("/api/auth/register").contentType("application/json")
+                        .content("{\"name\":\"Novo\",\"email\":\"novo@inatel.br\",\"password\":\"Senha123\",\"role\":\"ADMIN\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.userId").isNumber())
+                .andExpect(jsonPath("$.name").value("Novo"))
+                .andExpect(jsonPath("$.email").value("novo@inatel.br"))
+                .andExpect(jsonPath("$.role").value("PARTICIPANT"))
+                .andExpect(jsonPath("$.password").doesNotExist()).andReturn();
+        entityManager.flush();
+        entityManager.clear();
+        var saved = repository.findByEmail("novo@inatel.br").orElseThrow();
+        assertThat(saved.getPassword()).startsWith("$2a$").isNotEqualTo("Senha123");
+        mvc.perform(post("/api/auth/login").contentType("application/json")
+                        .content("{\"email\":\"novo@inatel.br\",\"password\":\"Senha123\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").isNotEmpty())
+                .andExpect(jsonPath("$.userId").value(mapper.readTree(result.getResponse().getContentAsString()).get("userId").asLong()));
+    }
+
+    @Test
+    void rejectsDuplicateRegistration() throws Exception {
+        users.create("RF01", "rf01@inatel.br", "Senha123", Role.PARTICIPANT);
+        mvc.perform(post("/api/auth/register").contentType("application/json")
+                        .content("{\"name\":\"Outro\",\"email\":\"rf01@inatel.br\",\"password\":\"Senha123\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Email already registered"));
+    }
+
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {
+            "{}", "{", "null",
+            "{\"name\":\" \" ,\"email\":\"novo@inatel.br\",\"password\":\"Senha123\"}",
+            "{\"name\":\"Novo\",\"email\":\"invalido\",\"password\":\"Senha123\"}",
+            "{\"name\":\"Novo\",\"email\":\"novo@inatel.br\",\"password\":\"fraca\"}"
+    })
+    void rejectsInvalidRegistration(String body) throws Exception {
+        long before = repository.count();
+        mvc.perform(post("/api/auth/register").contentType("application/json").content(body))
+                .andExpect(status().isBadRequest());
+        assertThat(repository.count()).isEqualTo(before);
+    }
+
+    @Test
     void rejectsWrongPasswordAndUnknownUserAgainstDatabase() throws Exception {
         users.create("RF01", "rf01@inatel.br", "Senha123", Role.PARTICIPANT);
         entityManager.flush();

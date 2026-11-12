@@ -5,9 +5,11 @@ import br.inatel.loans.exception.InvalidLoanException;
 import br.inatel.loans.model.Loan;
 import br.inatel.loans.repository.LoanRepository;
 import br.inatel.users.model.User;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 
+@Service
 public class LoanService {
 
     private final LoanRepository repository;

@@ -78,6 +78,7 @@ pipeline {
                             Write-Host 'Backend disponivel: UP'
                         '''
                     }
+                }
             }
         }
     }

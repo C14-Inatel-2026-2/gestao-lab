@@ -13,7 +13,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+        "spring.datasource.url=jdbc:sqlite::memory:",
+        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "spring.datasource.hikari.maximum-pool-size=1"
+})
 @Transactional
 class DeviceRepositoryTest {
 

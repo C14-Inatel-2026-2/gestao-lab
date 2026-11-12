@@ -3,6 +3,7 @@ package br.inatel.users.controller;
 import br.inatel.users.model.Role;
 import br.inatel.users.repository.UserRepository;
 import br.inatel.users.service.UserService;
+import br.inatel.users.service.TokenService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
@@ -21,6 +22,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -46,6 +48,64 @@ class AuthDatabaseTest {
     @Autowired UserRepository repository;
     @Autowired EntityManager entityManager;
     @Autowired ObjectMapper mapper;
+    @Autowired TokenService tokens;
+
+    @Test
+    void adminPromotesParticipantAndRepeatedPromotionIsSafe() throws Exception {
+        var admin = users.create("Admin", "admin-promote@inatel.br", "Senha123", Role.ADMIN);
+        var participant = users.create("Participant", "promote@inatel.br", "Senha123", Role.PARTICIPANT);
+        String token = tokens.issue(admin);
+        for (int attempt = 0; attempt < 2; attempt++) {
+            mvc.perform(patch(
+                            "/api/users/{id}/promote", participant.getId())
+                            .header("Authorization", "Bearer " + token))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(participant.getId()))
+                    .andExpect(jsonPath("$.role").value("ADMIN"))
+                    .andExpect(jsonPath("$.password").doesNotExist());
+            entityManager.flush();
+            entityManager.clear();
+            var saved = repository.findById(participant.getId()).orElseThrow();
+            assertThat(saved.getRole()).isEqualTo(Role.ADMIN);
+            assertThat(saved.getPassword()).isEqualTo(participant.getPassword());
+        }
+        assertThat(users.authenticate(participant.getEmail(), "Senha123").role()).isEqualTo(Role.ADMIN);
+    }
+
+    @Test
+    void participantCannotPromoteSelfOrAnotherUser() throws Exception {
+        var caller = users.create("Caller", "caller@inatel.br", "Senha123", Role.PARTICIPANT);
+        var other = users.create("Other", "other@inatel.br", "Senha123", Role.PARTICIPANT);
+        for (Long id : new Long[]{caller.getId(), other.getId()}) {
+            mvc.perform(patch(
+                            "/api/users/{id}/promote", id)
+                            .header("Authorization", "Bearer " + tokens.issue(caller)))
+                    .andExpect(status().isForbidden());
+        }
+        entityManager.flush();
+        entityManager.clear();
+        assertThat(repository.findById(caller.getId()).orElseThrow().getRole()).isEqualTo(Role.PARTICIPANT);
+        assertThat(repository.findById(other.getId()).orElseThrow().getRole()).isEqualTo(Role.PARTICIPANT);
+    }
+
+    @Test
+    void promotionRequiresAuthentication() throws Exception {
+        mvc.perform(patch("/api/users/1/promote"))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(patch("/api/users/1/promote")
+                        .header("Authorization", "Bearer invalid"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void adminReceivesNotFoundForUnknownUser() throws Exception {
+        var admin = users.create("Admin", "missing@inatel.br", "Senha123", Role.ADMIN);
+        mvc.perform(patch(
+                        "/api/users/{id}/promote", Long.MAX_VALUE)
+                        .header("Authorization", "Bearer " + tokens.issue(admin)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("User not found"));
+    }
 
     @ParameterizedTest
     @EnumSource(Role.class)

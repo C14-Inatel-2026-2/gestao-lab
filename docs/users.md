@@ -1,4 +1,4 @@
-# RF01 — autenticação
+# Usuários, autenticação e autorização
 
 O backend recebe `POST /api/auth/login` com JSON contendo `email` e `password`.
 Busca o usuário no banco por e-mail e compara a senha com BCrypt. O cadastro via
@@ -32,7 +32,7 @@ curl -i http://localhost:8080/api/auth/login \
 ```
 
 Use as credenciais de um usuário previamente cadastrado no banco. A porta do
-Compose de deploy é 8082; ajuste a URL conforme o ambiente.
+Compose de deploy é 8083; ajuste a URL conforme o ambiente.
 
 Sucesso: HTTP 200, com `token`, `userId`, `name`, `email` e `role` (`ADMIN` ou
 `PARTICIPANT`). A resposta não contém senha nem hash.
@@ -48,9 +48,9 @@ curl -i http://localhost:8080/api/ROTA_EXISTENTE \
   -H 'Authorization: Bearer TOKEN_RECEBIDO_NO_LOGIN'
 ```
 
-`ROTA_EXISTENTE` é um marcador: esta branch ainda não implementa os endpoints de
-negócio. Os testes HTTP usam endpoints exclusivos de teste para demonstrar acesso
-protegido e restrição por perfil. Sem token válido, rotas protegidas retornam 401.
+`ROTA_EXISTENTE` é um marcador para uma rota implementada. O endpoint de promoção
+de usuários descrito abaixo exige perfil de administrador. Sem token válido,
+rotas protegidas retornam 401.
 O login e o cadastro (POST), além de `/actuator/health` (GET), são públicos; o health é usado pelo deploy.
 
 ## Sessões e perfis
@@ -66,12 +66,36 @@ O filtro associa a identidade ao contexto de segurança com `ROLE_ADMIN` ou
 cada domínio devem ser definidas pelos seus responsáveis. O teste verifica que
 um participante recebe 403 em uma operação reservada ao administrador.
 
+## Administrador inicial
+
+A criação do primeiro administrador é opcional e ocorre durante a inicialização.
+Configure as variáveis de ambiente antes de iniciar o backend:
+
+```text
+INITIAL_ADMIN_ENABLED=true
+INITIAL_ADMIN_NAME=Administrador
+INITIAL_ADMIN_EMAIL=admin@inatel.br
+INITIAL_ADMIN_PASSWORD=<senha definida pelo responsável>
+```
+
+Não existe senha padrão. A senha segue as regras de cadastro e é salva com BCrypt;
+nome e e-mail devem ser válidos. Sem essas variáveis, a funcionalidade fica desativada.
+Com a criação habilitada, dados inválidos ou e-mail ocupado por outro usuário
+impedem a inicialização, sem promover participantes automaticamente.
+
+Se já existir qualquer `ADMIN`, nenhuma conta ou senha é alterada nos reinícios.
+Após criar o primeiro administrador, desative `INITIAL_ADMIN_ENABLED` e remova as
+credenciais do ambiente. No Docker Compose, as variáveis precisam ser repassadas
+ao container em `environment`; defini-las apenas no host não as disponibiliza ao backend.
+O administrador pode fazer login normalmente em `POST /api/auth/login`.
+
 ## Verificação automatizada
 
 Na raiz do projeto:
 
 ```bash
-mvn -f backend/pom.xml test
+cd backend
+./mvnw test
 ```
 
 `AuthHttpTest` usa Spring MVC e a cadeia de segurança reais, BCrypt real e um
@@ -89,3 +113,29 @@ verifica rejeição de senha incorreta e usuário inexistente.
 
 O projeto usa SQLite. No Compose de deploy, o arquivo do banco fica em um volume
 nomeado em `/app/data/gestaolab.db`, preservado entre reinicializações do container.
+
+## Promoção de participantes
+
+`PATCH /api/users/{id}/promote`
+
+Requer `Authorization: Bearer <token>` de um usuário `ADMIN`. Não requer corpo.
+
+```bash
+curl -X PATCH http://localhost:8080/api/users/2/promote \
+  -H "Authorization: Bearer <token-do-administrador>"
+```
+
+| Status | Resultado |
+|---|---|
+| 200 | Usuário promovido; retorna `id`, `name`, `email` e `role: ADMIN`, sem senha. |
+| 401 | Token ausente, inválido ou expirado. |
+| 403 | Usuário autenticado como `PARTICIPANT`, inclusive ao tentar promover a si mesmo. |
+| 404 | Usuário de destino não encontrado. |
+
+Repetir a promoção de um administrador retorna 200 e mantém seu perfil.
+A alteração é persistida no SQLite. Como os tokens existentes preservam o perfil
+do momento de sua emissão, o usuário promovido deve fazer login novamente para
+obter as permissões de administrador.
+
+Os cenários de promoção, repetição, persistência, novo login, acesso negado e
+usuário inexistente estão cobertos em `AuthDatabaseTest`.

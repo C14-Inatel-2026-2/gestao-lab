@@ -2,6 +2,7 @@ package br.inatel.users.controller;
 
 import br.inatel.users.exception.InvalidCredentialsException;
 import br.inatel.users.exception.EmailAlreadyRegisteredException;
+import br.inatel.users.exception.UserNotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,11 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class AuthExceptionHandler {
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<Map<String, String>> userNotFound() {
+        return ResponseEntity.status(404).body(Map.of("message", "User not found"));
+    }
+
     @ExceptionHandler(EmailAlreadyRegisteredException.class)
     public ResponseEntity<Map<String, String>> emailAlreadyRegistered() {
         return ResponseEntity.status(409).body(Map.of("message", "Email already registered"));

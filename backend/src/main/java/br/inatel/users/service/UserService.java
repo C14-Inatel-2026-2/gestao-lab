@@ -3,11 +3,13 @@ package br.inatel.users.service;
 import br.inatel.users.dto.LoginResponse;
 import br.inatel.users.exception.InvalidCredentialsException;
 import br.inatel.users.exception.EmailAlreadyRegisteredException;
+import br.inatel.users.exception.UserNotFoundException;
 import br.inatel.users.model.Role;
 import br.inatel.users.model.User;
 import br.inatel.users.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 
 
@@ -28,6 +30,16 @@ public class UserService {
 
     public boolean isEmailAvailable(String email) {
         return userRepository.findByEmail(email).isEmpty();
+    }
+
+    @Transactional
+    public User promoteToAdmin(Long id) {
+        User user = userRepository.findById(id).orElseThrow(UserNotFoundException::new);
+        if (user.getRole() != Role.ADMIN) {
+            user.promoteToAdmin();
+            return userRepository.save(user);
+        }
+        return user;
     }
 
     public User create(String name, String email, String password, Role role) {

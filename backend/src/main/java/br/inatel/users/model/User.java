@@ -55,6 +55,10 @@ public class User {
         return role;
     }
 
+    public void promoteToAdmin() {
+        this.role = Role.ADMIN;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

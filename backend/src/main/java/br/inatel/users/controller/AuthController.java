@@ -1,5 +1,9 @@
 package br.inatel.users.controller;
 
+import br.inatel.users.dto.RegisterRequest;
+import br.inatel.users.dto.RegisterResponse;
+import br.inatel.users.model.Role;
+import jakarta.validation.Valid;
 import br.inatel.users.dto.LoginRequest;
 import br.inatel.users.dto.LoginResponse;
 import br.inatel.users.service.UserService;
@@ -20,6 +24,13 @@ public class AuthController {
 
     public AuthController(UserService userService) {
         this.userService = userService;
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
+        var user = userService.create(request.name(), request.email(), request.password(), Role.PARTICIPANT);
+        return ResponseEntity.status(201).body(
+                new RegisterResponse(user.getId(), user.getName(), user.getEmail(), user.getRole()));
     }
 
     @PostMapping("/login")

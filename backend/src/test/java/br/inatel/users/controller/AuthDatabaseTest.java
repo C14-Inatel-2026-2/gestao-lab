@@ -6,7 +6,6 @@ import br.inatel.users.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,15 +19,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-// Use only a disposable database: Hibernate creates and drops the schema for this test.
-@EnabledIfEnvironmentVariable(named = "RF01_TEST_DATABASE_URL", matches = "jdbc:postgresql:.*")
+// This database lives in the system temporary directory and is recreated for each test context.
 @SpringBootTest(properties = {
-        "spring.datasource.url=${RF01_TEST_DATABASE_URL}",
-        "spring.datasource.username=${RF01_TEST_DATABASE_USER}",
-        "spring.datasource.password=${RF01_TEST_DATABASE_PASSWORD}",
-        "spring.datasource.driver-class-name=org.postgresql.Driver",
-        "spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect",
-        "spring.jpa.hibernate.ddl-auto=create-drop"
+        "spring.datasource.url=jdbc:sqlite:${java.io.tmpdir}/gestao-lab-auth-database-test.db",
+        "spring.datasource.driver-class-name=org.sqlite.JDBC",
+        "spring.jpa.database-platform=org.hibernate.community.dialect.SQLiteDialect",
+        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "spring.datasource.hikari.maximum-pool-size=1"
 })
 @AutoConfigureMockMvc
 @Transactional
@@ -59,6 +56,50 @@ class AuthDatabaseTest {
         mvc.perform(get("/api/private-proof")).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/private-proof").header("Authorization", "Bearer " + token))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void publicRegistrationCreatesParticipantAndAllowsLogin() throws Exception {
+        var result = mvc.perform(post("/api/auth/register").contentType("application/json")
+                        .content("{\"name\":\"Novo\",\"email\":\"novo@inatel.br\",\"password\":\"Senha123\",\"role\":\"ADMIN\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.userId").isNumber())
+                .andExpect(jsonPath("$.name").value("Novo"))
+                .andExpect(jsonPath("$.email").value("novo@inatel.br"))
+                .andExpect(jsonPath("$.role").value("PARTICIPANT"))
+                .andExpect(jsonPath("$.password").doesNotExist()).andReturn();
+        entityManager.flush();
+        entityManager.clear();
+        var saved = repository.findByEmail("novo@inatel.br").orElseThrow();
+        assertThat(saved.getPassword()).startsWith("$2a$").isNotEqualTo("Senha123");
+        mvc.perform(post("/api/auth/login").contentType("application/json")
+                        .content("{\"email\":\"novo@inatel.br\",\"password\":\"Senha123\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").isNotEmpty())
+                .andExpect(jsonPath("$.userId").value(mapper.readTree(result.getResponse().getContentAsString()).get("userId").asLong()));
+    }
+
+    @Test
+    void rejectsDuplicateRegistration() throws Exception {
+        users.create("RF01", "rf01@inatel.br", "Senha123", Role.PARTICIPANT);
+        mvc.perform(post("/api/auth/register").contentType("application/json")
+                        .content("{\"name\":\"Outro\",\"email\":\"rf01@inatel.br\",\"password\":\"Senha123\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Email already registered"));
+    }
+
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {
+            "{}", "{", "null",
+            "{\"name\":\" \" ,\"email\":\"novo@inatel.br\",\"password\":\"Senha123\"}",
+            "{\"name\":\"Novo\",\"email\":\"invalido\",\"password\":\"Senha123\"}",
+            "{\"name\":\"Novo\",\"email\":\"novo@inatel.br\",\"password\":\"fraca\"}"
+    })
+    void rejectsInvalidRegistration(String body) throws Exception {
+        long before = repository.count();
+        mvc.perform(post("/api/auth/register").contentType("application/json").content(body))
+                .andExpect(status().isBadRequest());
+        assertThat(repository.count()).isEqualTo(before);
     }
 
     @Test

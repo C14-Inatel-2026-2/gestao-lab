@@ -2,6 +2,7 @@ package br.inatel.users.service;
 
 import br.inatel.users.dto.LoginResponse;
 import br.inatel.users.exception.InvalidCredentialsException;
+import br.inatel.users.exception.EmailAlreadyRegisteredException;
 import br.inatel.users.model.Role;
 import br.inatel.users.model.User;
 import br.inatel.users.repository.UserRepository;
@@ -43,7 +44,7 @@ public class UserService {
             throw new IllegalArgumentException("User role is required");
         }
         if (!isEmailAvailable(email)) {
-            throw new IllegalArgumentException("Email already registered");
+            throw new EmailAlreadyRegisteredException();
         }
 
         String hashedPassword = passwordEncoder.encode(password);

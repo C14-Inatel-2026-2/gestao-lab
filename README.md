@@ -1,6 +1,6 @@
 # Gestão de Laboratórios
 
-Sistema web para controle centralizado de laboratórios acadêmicos: inventário de dispositivos, empréstimos/devoluções, projetos vinculados e relatórios.
+Sistema web para controle centralizado de laboratórios acadêmicos. Cada laboratório possui administradores, participantes, projetos vinculados e seu próprio inventário de dispositivos. O sistema gerencia o cadastro de equipamentos, a associação a projetos e o fluxo de solicitação e devolução de empréstimos, garantindo rastreabilidade e impedindo alocações conflitantes.
 
 Projeto acadêmico - Engenharia de Software (C14)
 
@@ -15,18 +15,20 @@ Projeto acadêmico - Engenharia de Software (C14)
 - Mauro Iwama (@Miwamma)
 - Solange Ribeiro da Fonseca (@SolangeRibeiro)
 
-##  Funcionalidades
-- Controle de Acesso: perfis de Administrador (gerencia laboratório, cadastra itens e aprova ações) e Participante (solicita empréstimos)
-- Gestão de Projetos: criação de projetos e vinculação de dispositivos e participantes
-- Inventário de Dispositivos: cadastro de equipamentos por laboratório e controle de status (Disponível, Emprestado, Em Manutenção)
-- Empréstimos e Devoluções: solicitação de item atrelada a um projeto, validação de disponibilidade e registro de devolução, impedindo alocações conflitantes
-- Relatórios: histórico de movimentações, itens em atraso e alocações ativas por projeto
+## Funcionalidades
+
+- Controle de acesso: perfis de Administrador e Participante, com permissões distintas.
+- Gestão de laboratórios: administradores, participantes e inventário próprios para cada laboratório.
+- Gestão de projetos: criação de projetos vinculados a laboratórios e associação de participantes e dispositivos.
+- Inventário de dispositivos: cadastro de equipamentos por laboratório e controle dos status `AVAILABLE`, `BORROWED` e `IN_MAINTENANCE`.
+- Empréstimos e devoluções: solicitação de dispositivo vinculada a um projeto, validação de disponibilidade, aprovação ou rejeição pelo administrador e registro de devolução.
+- Rastreabilidade e relatórios: histórico de movimentações, itens em atraso e alocações ativas por projeto.
 
 ## Tecnologias
 
 - **Frontend**: React
 - **Backend**: Java 21 + Spring Boot (Maven)
-- **Banco**: PostgreSQL
+- **Banco**: SQLite
 - **Testes**: JUnit + Mockito (backend), Jest + RTL (frontend)
 
 ## Estrutura do Repositório
@@ -37,7 +39,7 @@ Monorepo: backend, frontend, scripts de banco e CI/CD juntos.
 gestao-lab/
 ├── backend/
 ├── frontend/
-├── db/
+├── docs/
 └── README.md
 ```
 
@@ -92,7 +94,7 @@ A pipeline executa automaticamente as seguintes etapas:
 | RF04 | O sistema deve permitir a criação de projetos vinculados a laboratórios. |
 | RF05 | O sistema deve permitir a associação de participantes a projetos. |
 | RF06 | O sistema deve permitir o cadastro de dispositivos por laboratório. |
-| RF07 | O sistema deve controlar os status dos dispositivos: Disponível, Emprestado e Em Manutenção. |
+| RF07 | O sistema deve controlar os status dos dispositivos: `AVAILABLE`, `BORROWED` e `IN_MAINTENANCE`. |
 | RF08 | O sistema deve permitir a solicitação de empréstimos de dispositivos vinculados a projetos. |
 | RF09 | O sistema deve verificar a disponibilidade dos dispositivos antes de permitir um empréstimo. |
 | RF10 | O sistema deve permitir a aprovação ou rejeição de solicitações pelo administrador. |
@@ -106,7 +108,7 @@ A pipeline executa automaticamente as seguintes etapas:
 |---|---|
 | RNF01 | A aplicação deve possuir uma interface web desenvolvida em React. |
 | RNF02 | O backend deve ser desenvolvido em Java 21 com Spring Boot. |
-| RNF03 | Os dados da aplicação devem ser armazenados em PostgreSQL. |
+| RNF03 | Os dados da aplicação devem ser armazenados em SQLite. |
 | RNF04 | O sistema deve restringir o acesso às funcionalidades conforme as permissões dos usuários. |
 | RNF05 | O sistema deve preservar a integridade dos dados nas operações de empréstimo e devolução, evitando alocações conflitantes. |
 | RNF06 | O backend deve possuir testes automatizados com JUnit e Mockito. |

@@ -6,6 +6,7 @@ RUN apk add --no-cache curl \
 
 WORKDIR /app
 COPY target/backend-1.0-SNAPSHOT.jar app.jar
+RUN mkdir /app/data && chown -R app:app /app
 
 USER app
 EXPOSE 8080

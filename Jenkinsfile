@@ -62,7 +62,7 @@ pipeline {
                             set -eu
                             docker compose -p gestao-lab-local -f compose.deploy.yaml up -d --build --wait --wait-timeout 180
                             docker compose -p gestao-lab-local -f compose.deploy.yaml ps
-                            health="$(curl --fail --silent --show-error http://localhost:8082/actuator/health)"
+                            health="$(curl --fail --silent --show-error http://localhost:8083/actuator/health)"
                             printf '%s' "$health" | grep -Eq '"status"[[:space:]]*:[[:space:]]*"UP"'
                         '''
                         echo 'Backend disponivel: UP'
@@ -71,7 +71,7 @@ pipeline {
                         bat 'docker compose -p gestao-lab-local -f compose.deploy.yaml ps'
                         powershell '''
                             $ErrorActionPreference = 'Stop'
-                            $health = Invoke-RestMethod 'http://localhost:8082/actuator/health' -TimeoutSec 15
+                            $health = Invoke-RestMethod 'http://localhost:8083/actuator/health' -TimeoutSec 15
                             if ($health.status -ne 'UP') {
                                 throw 'Backend indisponivel apos o deploy.'
                             }

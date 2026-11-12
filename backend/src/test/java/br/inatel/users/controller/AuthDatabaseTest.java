@@ -11,17 +11,20 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.nio.file.Path;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-// This database lives in the system temporary directory and is recreated for each test context.
 @SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:sqlite:${java.io.tmpdir}/gestao-lab-auth-database-test.db",
         "spring.datasource.driver-class-name=org.sqlite.JDBC",
         "spring.jpa.database-platform=org.hibernate.community.dialect.SQLiteDialect",
         "spring.jpa.hibernate.ddl-auto=create-drop",
@@ -30,6 +33,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Transactional
 class AuthDatabaseTest {
+    private static final Path DATABASE_FILE = Path.of(System.getProperty("java.io.tmpdir"),
+            "gestao-lab-auth-" + UUID.randomUUID() + ".db");
+
+    @DynamicPropertySource
+    static void configureDatabase(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", () -> "jdbc:sqlite:" + DATABASE_FILE);
+    }
+
     @Autowired MockMvc mvc;
     @Autowired UserService users;
     @Autowired UserRepository repository;

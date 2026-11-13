@@ -63,14 +63,22 @@ pipeline {
                     )
                 ]) {
                     sh '''
-                        set +x
-                        set -eu
-                        curl --fail --silent --show-error \
-                            --connect-timeout 15 \
-                            --max-time 60 \
-                            --output /dev/null \
-                            --request POST \
-                            "${RENDER_DEPLOY_HOOK_URL}&ref=${GIT_COMMIT}"
+                    set +x
+                    set -eu
+
+                    COMMIT_SHA="$(git rev-parse HEAD)"
+
+                    case "$RENDER_DEPLOY_HOOK_URL" in
+                        *\?*) SEPARATOR='&' ;;
+                        *)    SEPARATOR='?' ;;
+                    esac
+
+                    curl --fail --silent --show-error \
+                        --connect-timeout 15 \
+                        --max-time 60 \
+                        --output /dev/null \
+                        --request POST \
+                        "${RENDER_DEPLOY_HOOK_URL}${SEPARATOR}ref=${COMMIT_SHA}"
                     '''
                 }
                 echo 'Deploy solicitado ao Render. A conclusao deve ser acompanhada no Render.'

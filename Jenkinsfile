@@ -69,7 +69,7 @@ pipeline {
                     COMMIT_SHA="$(git rev-parse HEAD)"
 
                     case "$RENDER_DEPLOY_HOOK_URL" in
-                        *\?*) SEPARATOR='&' ;;
+                        *'?'*) SEPARATOR='&' ;;
                         *)    SEPARATOR='?' ;;
                     esac
 

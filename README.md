@@ -16,7 +16,7 @@ Projeto acadêmico - Engenharia de Software (C14)
 - Controle de acesso: perfis de Administrador e Participante, com permissões distintas.
 - Gestão de laboratórios: administradores, participantes e inventário próprios para cada laboratório.
 - Gestão de projetos: criação de projetos vinculados a laboratórios e associação de participantes e dispositivos.
-- Inventário de dispositivos: cadastro de equipamentos por laboratório e controle dos status `AVAILABLE`, `BORROWED` e `IN_MAINTENANCE`.
+- Inventário de dispositivos: cadastro de equipamentos por laboratório e controle dos status `AVAILABLE`, `BORROWED` e `MAINTENANCE`.
 - Empréstimos e devoluções: solicitação de dispositivo vinculada a um projeto, validação de disponibilidade, aprovação ou rejeição pelo administrador e registro de devolução.
 - Rastreabilidade e relatórios: histórico de movimentações, itens em atraso e alocações ativas por projeto.
 
@@ -93,7 +93,7 @@ A pipeline executa automaticamente as seguintes etapas:
 | RF04 | O sistema deve permitir a criação de projetos vinculados a laboratórios. |
 | RF05 | O sistema deve permitir a associação de participantes a projetos. |
 | RF06 | O sistema deve permitir o cadastro de dispositivos por laboratório. |
-| RF07 | O sistema deve controlar os status dos dispositivos: `AVAILABLE`, `BORROWED` e `IN_MAINTENANCE`. |
+| RF07 | O sistema deve controlar os status dos dispositivos: `AVAILABLE`, `BORROWED` e `MAINTENANCE`. |
 | RF08 | O sistema deve permitir a solicitação de empréstimos de dispositivos vinculados a projetos. |
 | RF09 | O sistema deve verificar a disponibilidade dos dispositivos antes de permitir um empréstimo. |
 | RF10 | O sistema deve permitir a aprovação ou rejeição de solicitações pelo administrador. |

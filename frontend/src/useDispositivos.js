@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { laboratoriosDe, listarDispositivos } from './api';
+import { laboratoriosDe, listarDispositivos, listarEmprestimos } from './api';
 
 /**
  * Busca o inventario no backend e devolve o estado da requisicao.
@@ -60,4 +60,31 @@ export function useLaboratorios({ token, versao = 0 } = {}) {
   }, [token, versao]);
 
   return laboratorios;
+}
+
+/**
+ * Emprestimos visiveis para o usuario autenticado.
+ *
+ * O backend decide o escopo: ADMIN recebe todos, qualquer outro perfil recebe
+ * apenas os seus. A tela nao precisa filtrar nada.
+ */
+export function useEmprestimos({ token, versao = 0 } = {}) {
+  const [itens, setItens] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState('');
+
+  useEffect(() => {
+    let ativo = true;
+    setCarregando(true);
+    setErro('');
+
+    listarEmprestimos({ token })
+      .then((dados) => ativo && setItens(Array.isArray(dados) ? dados : []))
+      .catch((e) => ativo && setErro(e.message || 'Nao foi possivel carregar os emprestimos.'))
+      .finally(() => ativo && setCarregando(false));
+
+    return () => { ativo = false; };
+  }, [token, versao]);
+
+  return { itens, carregando, erro };
 }

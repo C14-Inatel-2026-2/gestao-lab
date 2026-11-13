@@ -193,3 +193,20 @@ p { margin: 0; }
 .painel__acoes { display: flex; gap: 8px; }
 
 .field__control--inline { padding: 4px 8px; font-size: 13px; }
+
+/* ---------- Abas e acoes de tabela ---------- */
+.abas { display: flex; gap: 4px; }
+.aba {
+  background: none; border: 1px solid transparent; border-radius: var(--radius);
+  padding: 6px 12px; cursor: pointer; font: inherit; font-size: 13px; font-weight: 600;
+  color: var(--text-muted);
+}
+.aba:hover { color: var(--text); background: var(--surface-alt); }
+.aba--ativa { color: var(--brand-strong); background: var(--brand-soft); border-color: var(--brand); }
+
+.tabela__acoes { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.situacao--requested { background: var(--surface-alt); color: var(--text-muted); }
+.situacao--approved { background: var(--brand-soft); color: var(--brand-strong); }
+.situacao--rejected { background: var(--danger-soft); color: var(--danger); }
+.situacao--returned { background: var(--surface-alt); color: var(--text); }

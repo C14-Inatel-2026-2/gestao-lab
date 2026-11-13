@@ -26,6 +26,22 @@ export const STATUS_LABELS = {
   [STATUS.MAINTENANCE]: 'Em manutencao',
 };
 
+/** Ciclo de vida do emprestimo, espelhando o enum LoanStatus de br.inatel.loans. */
+export const LOAN_STATUS = {
+  REQUESTED: 'REQUESTED',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  RETURNED: 'RETURNED',
+};
+
+/** Rotulo exibido para cada etapa, derivado de LOAN_STATUS - fonte unica. */
+export const LOAN_STATUS_LABELS = {
+  [LOAN_STATUS.REQUESTED]: 'Solicitado',
+  [LOAN_STATUS.APPROVED]: 'Aprovado',
+  [LOAN_STATUS.REJECTED]: 'Rejeitado',
+  [LOAN_STATUS.RETURNED]: 'Devolvido',
+};
+
 /** Sessao inteira numa chave: o backend devolve token e usuario no mesmo login. */
 export const STORAGE_KEY = 'gestao-lab:sessao';
 
@@ -159,19 +175,50 @@ export function alterarStatus({ token, id, status }) {
   return requisitar(`/devices/${id}/status`, { metodo: 'PATCH', token, corpo: { status } });
 }
 
-/* Emprestimos e usuarios */
+/* Emprestimos */
 
 /**
- * POST /api/loans -> 201 { id, userId, laboratoryId, startDateTime, endDateTime }.
- * O solicitante nao vai no corpo: o backend usa o usuario autenticado.
+ * POST /api/loans -> 201 LoanResponse com status REQUESTED.
+ *
+ * O solicitante nao vai no corpo: o backend usa o usuario autenticado. O
+ * dispositivo precisa pertencer ao laboratorio informado, nao estar em
+ * manutencao e nao ter emprestimo aprovado no mesmo periodo - o LoanService
+ * recusa os tres casos com 400.
  */
-export function solicitarEmprestimo({ token, laboratoryId, startDateTime, endDateTime }) {
+export function solicitarEmprestimo({ token, laboratoryId, deviceId, startDateTime, endDateTime }) {
   return requisitar('/loans', {
     metodo: 'POST',
     token,
-    corpo: { laboratoryId: Number(laboratoryId), startDateTime, endDateTime },
+    corpo: {
+      laboratoryId: Number(laboratoryId),
+      deviceId: Number(deviceId),
+      startDateTime,
+      endDateTime,
+    },
   });
 }
+
+/** GET /api/loans -> todos os emprestimos para ADMIN, apenas os proprios para PARTICIPANT. */
+export function listarEmprestimos({ token } = {}) {
+  return requisitar('/loans', { token });
+}
+
+/** PATCH /api/loans/{id}/approve -> 200. Exige ADMIN e status REQUESTED. */
+export function aprovarEmprestimo({ token, id }) {
+  return requisitar(`/loans/${id}/approve`, { metodo: 'PATCH', token });
+}
+
+/** PATCH /api/loans/{id}/reject -> 200. Exige ADMIN e status REQUESTED. */
+export function rejeitarEmprestimo({ token, id }) {
+  return requisitar(`/loans/${id}/reject`, { metodo: 'PATCH', token });
+}
+
+/** PATCH /api/loans/{id}/return -> 200. Exige ADMIN e status APPROVED. */
+export function registrarDevolucao({ token, id }) {
+  return requisitar(`/loans/${id}/return`, { metodo: 'PATCH', token });
+}
+
+/* Usuarios */
 
 /** PATCH /api/users/{id}/promote -> 200. Exige perfil ADMIN. */
 export function promoverUsuario({ token, id }) {

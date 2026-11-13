@@ -4,10 +4,6 @@ Sistema web para controle centralizado de laboratórios acadêmicos. Cada labora
 
 Projeto acadêmico - Engenharia de Software (C14)
 
-## Status
-
-🚧 Em desenvolvimento
-
 ## Autores
 - Giovana Franciele Gonçalves Leite (@GiovanaFrancieleGLeite)
 - Igor Nogueira Olivio (@IgorNogueiraOlivio)
@@ -35,6 +31,9 @@ Projeto acadêmico - Engenharia de Software (C14)
 
 Monorepo: backend, frontend, scripts de banco e CI/CD juntos.
 
+Consulte o [índice da documentação](docs/README.md) para convenções de API e erros,
+contratos por domínio e guias operacionais.
+
 ```
 gestao-lab/
 ├── backend/
@@ -58,7 +57,7 @@ backend/src/main/java/br/inatel/
 
 Cada domínio contém `controller/`, `service/`, `repository/`, `model/` e `dto/`.
 
-## Como Executar (ainda em desenvolvimento, testes funcionam)
+## Como Executar
 
 ```bash
 cd backend
@@ -81,7 +80,7 @@ A pipeline executa automaticamente as seguintes etapas:
 ### 📷 Evidências de Execução
 | Pipeline Jenkins | Resultado dos Testes | Relatório JaCoCo |
 | :---: | :---: | :---: |
-| ![Pipeline](docs/jenkins-pipeline.png) | ![Testes](docs/jenkins-tests.png) | ![JaCoCo](docs/jenkins-coverage.png) |
+| ![Pipeline](docs/assets/ci/jenkins-pipeline.jpeg) | ![Testes](docs/assets/ci/jenkins-tests.jpeg) | ![JaCoCo](docs/assets/ci/jacoco-coverage.jpeg) |
 
 
 ## Requisitos Funcionais

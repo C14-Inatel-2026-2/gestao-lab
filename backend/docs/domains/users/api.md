@@ -1,0 +1,151 @@
+# API de usuários, autenticação e autorização
+
+Esta documentação segue as [convenções de API](../../conventions/api.md) e as
+[convenções de erros](../../conventions/errors.md). Cadastro e login são públicos; a
+promoção exige token Bearer de administrador.
+
+## POST /api/auth/register
+
+Cria uma conta com perfil `PARTICIPANT`; o cliente não pode escolher `ADMIN`.
+
+**Autorização:** pública.
+
+### Corpo da requisição
+
+```json
+{
+  "name": "Novo usuário",
+  "email": "usuario@inatel.br",
+  "password": "Senha123"
+}
+```
+
+Nome e e-mail são obrigatórios e o e-mail precisa ser válido. A senha tem de conter de
+8 a 72 caracteres, uma letra maiúscula e um dígito.
+
+### Resposta de sucesso — 201
+
+```json
+{
+  "userId": 1,
+  "name": "Novo usuário",
+  "email": "usuario@inatel.br",
+  "role": "PARTICIPANT"
+}
+```
+
+A resposta não contém senha ou hash e o cadastro não inicia sessão.
+
+### Erros previstos
+
+| Status | Situação |
+| ---: | --- |
+| 400 | Dados ausentes, inválidos ou JSON malformado |
+| 409 | E-mail já cadastrado ou conflito de persistência |
+
+```bash
+curl -i http://localhost:8080/api/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Novo usuário","email":"usuario@inatel.br","password":"Senha123"}'
+```
+
+## POST /api/auth/login
+
+Autentica um usuário cadastrado e emite token opaco de sessão.
+
+**Autorização:** pública.
+
+### Corpo da requisição
+
+```json
+{
+  "email": "usuario@inatel.br",
+  "password": "Senha123"
+}
+```
+
+### Resposta de sucesso — 200
+
+```json
+{
+  "token": "token-recebido-no-login",
+  "userId": 1,
+  "name": "Novo usuário",
+  "email": "usuario@inatel.br",
+  "role": "PARTICIPANT"
+}
+```
+
+### Erros previstos
+
+| Status | Situação |
+| ---: | --- |
+| 400 | JSON malformado ou corpo ausente |
+| 401 | E-mail inexistente, senha incorreta ou campos vazios |
+
+```bash
+curl -i http://localhost:8080/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"usuario@inatel.br","password":"Senha123"}'
+```
+
+## PATCH /api/users/{id}/promote
+
+Promove um participante a `ADMIN`. É idempotente: promover um administrador mantém o
+perfil e retorna sucesso.
+
+**Autorização:** `ADMIN`.
+
+### Parâmetros de caminho
+
+| Nome | Tipo | Descrição |
+| --- | --- | --- |
+| `id` | número inteiro | Identificador do usuário a promover |
+
+Não há corpo de requisição.
+
+### Resposta de sucesso — 200
+
+```json
+{
+  "id": 2,
+  "name": "Novo usuário",
+  "email": "usuario@inatel.br",
+  "role": "ADMIN"
+}
+```
+
+### Erros previstos
+
+| Status | Situação |
+| ---: | --- |
+| 401 | Token ausente, inválido ou expirado |
+| 403 | Solicitante autenticado com perfil `PARTICIPANT` |
+| 404 | Usuário de destino inexistente |
+
+```bash
+curl -i -X PATCH http://localhost:8080/api/users/2/promote \
+  -H 'Authorization: Bearer <token-de-administrador>'
+```
+
+## Sessões e administrador inicial
+
+Envie o token em `Authorization: Bearer <token>`. Sessões ficam em memória, expiram em
+uma hora e podem ser configuradas com `app.auth.token-ttl` ou `APP_AUTH_TOKEN_TTL`.
+Reiniciar o backend invalida sessões; o usuário promovido precisa entrar novamente para
+receber suas novas permissões.
+
+A conta administrativa inicial é opcional e usa as variáveis
+`INITIAL_ADMIN_ENABLED`, `INITIAL_ADMIN_NAME`, `INITIAL_ADMIN_EMAIL` e
+`INITIAL_ADMIN_PASSWORD`. Não existe senha padrão. Após a criação, desative a opção e
+remova as credenciais do ambiente.
+
+## Verificação automatizada
+
+```bash
+cd backend
+./mvnw test
+```
+
+`AuthHttpTest`, `UserServiceTest` e `AuthDatabaseTest` cobrem autenticação,
+cadastro, promoção, perfis e persistência em SQLite descartável.

@@ -1,11 +1,13 @@
 package br.inatel.labs.controller;
 
+import br.inatel.labs.dto.LaboratoryRequest;
 import br.inatel.labs.model.Laboratory;
 import br.inatel.labs.repository.LaboratoryRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -19,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -136,5 +139,82 @@ class LaboratoryHttpTest {
                 .andExpect(status().isUnauthorized());
 
         assertThat(repository.count()).isZero();
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void shouldUpdateAndPersistLaboratoryName() throws Exception {
+        Laboratory laboratory = repository.saveAndFlush(new Laboratory("Nome original"));
+
+        mvc.perform(put("/api/labs/{id}", laboratory.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Nome atualizado\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(laboratory.getId()))
+                .andExpect(jsonPath("$.name").value("Nome atualizado"));
+
+        entityManager.flush();
+        entityManager.clear();
+        assertThat(repository.findById(laboratory.getId()).orElseThrow().getName())
+                .isEqualTo("Nome atualizado");
+        assertThat(repository.count()).isEqualTo(1);
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = "   ")
+    @WithMockUser(roles = "ADMIN")
+    void shouldPreserveLaboratoryWhenUpdatedNameIsInvalid(String name) throws Exception {
+        Laboratory laboratory = repository.saveAndFlush(new Laboratory("Nome original"));
+
+        mvc.perform(put("/api/labs/{id}", laboratory.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new LaboratoryRequest(name))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Laboratory name is required"));
+
+        entityManager.clear();
+        assertThat(repository.findById(laboratory.getId()).orElseThrow().getName())
+                .isEqualTo("Nome original");
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void shouldReturnNotFoundWhenUpdatingUnknownLaboratory() throws Exception {
+        mvc.perform(put("/api/labs/{id}", -1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Nome atualizado\"}"))
+                .andExpect(status().isNotFound());
+
+        assertThat(repository.count()).isZero();
+    }
+
+    @Test
+    @WithMockUser(roles = "PARTICIPANT")
+    void shouldForbidParticipantFromUpdatingLaboratory() throws Exception {
+        Laboratory laboratory = repository.saveAndFlush(new Laboratory("Nome original"));
+
+        mvc.perform(put("/api/labs/{id}", laboratory.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Nome atualizado\"}"))
+                .andExpect(status().isForbidden());
+
+        entityManager.clear();
+        assertThat(repository.findById(laboratory.getId()).orElseThrow().getName())
+                .isEqualTo("Nome original");
+    }
+
+    @Test
+    void shouldRequireAuthenticationToUpdateLaboratory() throws Exception {
+        Laboratory laboratory = repository.saveAndFlush(new Laboratory("Nome original"));
+
+        mvc.perform(put("/api/labs/{id}", laboratory.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Nome atualizado\"}"))
+                .andExpect(status().isUnauthorized());
+
+        entityManager.clear();
+        assertThat(repository.findById(laboratory.getId()).orElseThrow().getName())
+                .isEqualTo("Nome original");
     }
 }

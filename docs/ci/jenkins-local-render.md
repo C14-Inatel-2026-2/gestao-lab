@@ -93,7 +93,7 @@ Use **Build Now**. O resultado esperado é:
 
 1. `Checkout`: obtém o commit do GitHub.
 2. `Test`: executa `sh ./mvnw clean test` em `backend`.
-3. `Build`: executa `sh ./mvnw package -DskipTests` em `backend`.
+3. `Build`: executa `sh ./mvnw verify -DskipTests` em `backend` e exige cobertura de pelo menos 80% das linhas.
 4. `Disparar deploy no Render`: obtém o SHA com `git rev-parse HEAD` e solicita o deploy desse commit ao Render.
 
 O Jenkins arquiva o JAR e os relatórios de teste. Depois da última etapa, acompanhe o deploy no painel do Render e consulte `https://<servico>.onrender.com/actuator/health` quando ele terminar.

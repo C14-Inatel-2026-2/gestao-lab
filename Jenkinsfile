@@ -55,12 +55,6 @@ pipeline {
         }
 
         stage('Disparar deploy no Render') {
-            when {
-                expression {
-                    env.BRANCH_NAME == 'ci/setup-remote-server' ||
-                        env.GIT_BRANCH == 'origin/ci/setup-remote-server'
-                }
-            }
             steps {
                 withCredentials([
                     string(

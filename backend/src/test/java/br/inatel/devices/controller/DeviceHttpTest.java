@@ -262,4 +262,15 @@ class DeviceHttpTest {
 
         verifyNoInteractions(deviceService);
     }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"{\"status\":0}", "{\"status\":1}", "{\"status\":\"1\"}"})
+    void rejectsNumericStatusInsteadOfEnumName(String body) throws Exception {
+        mvc.perform(patch("/api/devices/7/status").header("Authorization", "Bearer " + adminToken)
+                        .contentType("application/json").content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Malformed request"));
+
+        verifyNoInteractions(deviceService);
+    }
 }

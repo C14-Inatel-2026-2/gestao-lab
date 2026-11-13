@@ -41,16 +41,6 @@ docker exec gestao-lab-jenkins \
 
 Conclua o assistente de configuração e crie o usuário administrador. Em **Manage Jenkins > Nodes > Built-In Node > Configure**, defina um executor para o ambiente local.
 
-## 3. Configurar o Render
-
-No serviço do backend no Render:
-
-1. Em **Settings > Build & Deploy**, desative **Auto-Deploy**.
-2. Em **Settings**, copie a URL de **Deploy Hook**.
-3. Mantenha a raiz do serviço em `backend`, para que o Render use `backend/Dockerfile`.
-
-O hook é uma credencial secreta. Não o inclua no repositório nem no `Jenkinsfile`.
-
 ## 4. Cadastrar a credencial no Jenkins
 
 Em **Manage Jenkins > Credentials > System > Global credentials > Add Credentials**, crie:
@@ -58,7 +48,7 @@ Em **Manage Jenkins > Credentials > System > Global credentials > Add Credential
 | Campo | Valor |
 | --- | --- |
 | Kind | `Secret text` |
-| Secret | URL completa do Deploy Hook do Render: https://api.render.com/deploy/srv-dbr0ktm7bikc73c3nffg?key=5WkfKsHAtbw |
+| Secret | URL completa do Deploy Hook do Render |
 | ID | `render-deploy-hook` |
 
 O ID precisa ser exatamente `render-deploy-hook`, pois este é o identificador usado pelo `Jenkinsfile`.

@@ -1,6 +1,8 @@
 package br.inatel.loans.controller;
 
+import br.inatel.devices.exception.DeviceNotFoundException;
 import br.inatel.loans.exception.InvalidLoanException;
+import br.inatel.loans.exception.LoanNotFoundException;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +26,11 @@ public class LoanExceptionHandler {
     @ExceptionHandler(InvalidLoanException.class)
     public ResponseEntity<Map<String, String>> invalidLoan(InvalidLoanException exception) {
         return ResponseEntity.badRequest().body(Map.of("message", exception.getMessage()));
+    }
+
+    @ExceptionHandler({LoanNotFoundException.class, DeviceNotFoundException.class})
+    public ResponseEntity<Map<String, String>> notFound(RuntimeException exception) {
+        return ResponseEntity.status(404).body(Map.of("message", exception.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

@@ -1,17 +1,20 @@
 package br.inatel.loans.dto;
 
 import br.inatel.loans.model.Loan;
+import br.inatel.loans.model.LoanStatus;
 
 import java.time.LocalDateTime;
 
 /**
  * Response payload representing a Loan in API responses.
- * Exposes only ids and the period, never the full User (which holds the password hash).
+ * Exposes only ids, the status and the period, never the full User (which holds the password hash).
  */
 public record LoanResponse(
         Long id,
         Long userId,
         Long laboratoryId,
+        Long deviceId,
+        LoanStatus status,
         LocalDateTime startDateTime,
         LocalDateTime endDateTime
 ) {
@@ -23,6 +26,8 @@ public record LoanResponse(
                 loan.getId(),
                 loan.getUser().getId(),
                 loan.getLaboratory().getId(),
+                loan.getDevice() == null ? null : loan.getDevice().getId(),
+                loan.getStatus(),
                 loan.getStartDateTime(),
                 loan.getEndDateTime());
     }

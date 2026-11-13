@@ -15,7 +15,11 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class TokenService {
     public record Identity(Long userId, String email, Role role) {}
-    private record Session(Identity identity, Instant expiresAt) {}
+    private record Session(Identity identity, Instant expiresAt) {
+        boolean isExpiredAt(Instant now) {
+            return !expiresAt.isAfter(now);
+        }
+    }
 
     private final ConcurrentHashMap<String, Session> sessions = new ConcurrentHashMap<>();
     private final Clock clock;
@@ -32,7 +36,7 @@ public class TokenService {
     public String issue(User user) {
         Instant now = clock.instant();
         // Remove expired sessions so inactive tokens do not accumulate indefinitely.
-        sessions.entrySet().removeIf(entry -> !entry.getValue().expiresAt().isAfter(now));
+        sessions.entrySet().removeIf(entry -> entry.getValue().isExpiredAt(now));
         String token = UUID.randomUUID().toString();
         sessions.put(token, new Session(new Identity(user.getId(), user.getEmail(), user.getRole()), now.plus(ttl)));
         return token;
@@ -41,7 +45,7 @@ public class TokenService {
     public Optional<Identity> resolve(String token) {
         Session session = sessions.get(token);
         if (session == null) return Optional.empty();
-        if (!session.expiresAt().isAfter(clock.instant())) {
+        if (session.isExpiredAt(clock.instant())) {
             sessions.remove(token, session);
             return Optional.empty();
         }

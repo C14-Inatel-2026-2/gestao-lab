@@ -92,14 +92,14 @@ public class UserService {
      */
     public User validateCredentials(String email, String password) {
         if (email == null || email.isBlank() || password == null || password.isBlank()) {
-            throw new InvalidCredentialsException("Invalid email or password");
+            throw new InvalidCredentialsException();
         }
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
+                .orElseThrow(InvalidCredentialsException::new);
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new InvalidCredentialsException("Invalid email or password");
+            throw new InvalidCredentialsException();
         }
 
         return user;

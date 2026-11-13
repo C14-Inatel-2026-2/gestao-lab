@@ -9,6 +9,7 @@ import br.inatel.users.model.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -17,6 +18,8 @@ import java.time.LocalDateTime;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -96,5 +99,27 @@ class LoanServiceTest {
         assertThrows(IllegalArgumentException.class,
                 () -> service.create(user, laboratory, start, start));
         verifyNoInteractions(repository);
+    }
+
+    @Test
+    void shouldSendBuiltLoanToRepository() {
+        when(repository.save(any(Loan.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.create(user, laboratory, start, end);
+
+        ArgumentCaptor<Loan> captor = ArgumentCaptor.forClass(Loan.class);
+        verify(repository, times(1)).save(captor.capture());
+        assertEquals(user, captor.getValue().getUser());
+        assertEquals(laboratory, captor.getValue().getLaboratory());
+    }
+
+    @Test
+    void shouldPropagateRepositoryFailure() {
+        when(repository.save(any(Loan.class)))
+                .thenThrow(new RuntimeException("database unavailable"));
+
+        assertThrows(RuntimeException.class,
+                () -> service.create(user, laboratory, start, end));
     }
 }

@@ -52,3 +52,7 @@ build/
 .parcel-cache/
 # Maven
 target/
+
+# Database files
+*.db
+

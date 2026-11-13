@@ -120,3 +120,10 @@ A pipeline executa automaticamente as seguintes etapas:
 O desenvolvimento do projeto é organizado utilizando Scrum. O Jira é utilizado para gerenciar o backlog, as histórias de usuário (*User Stories*), os critérios de aceite, as tarefas e o acompanhamento das sprints.
 - [Backlog e sprints no Jira](https://solribeiro9147.atlassian.net/jira/software/projects/SCRUM/boards/1/backlog)
 - [SCRUM-18 — Cadastro de laboratórios](https://solribeiro9147.atlassian.net/browse/SCRUM-18): história relacionada ao RF03 — gerenciamento de laboratórios.
+
+## Refactors
+
+| Causa | O que foi feito | Autor |
+|---|---|---|
+| Mensagem de credenciais inválidas repetida em `UserService.validateCredentials`. | Reutilizado o construtor sem argumentos de `InvalidCredentialsException`, preservando a mensagem existente. | @LucasYnoguti |
+| Regra de expiração de sessões duplicada em `TokenService.issue` e `resolve`. | Centralizada em `Session.isExpiredAt(Instant)`, preservando a expiração no instante limite. | @LucasYnoguti |

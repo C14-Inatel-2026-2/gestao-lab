@@ -1,10 +1,14 @@
 package br.inatel.devices.service;
 
+import br.inatel.devices.exception.DeviceNotFoundException;
 import br.inatel.devices.exception.InvalidDeviceException;
 import br.inatel.devices.model.Device;
+import br.inatel.devices.model.DeviceStatus;
 import br.inatel.devices.repository.DeviceRepository;
 import br.inatel.labs.model.Laboratory;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class DeviceService {
@@ -24,5 +28,33 @@ public class DeviceService {
         }
 
         return repository.save(new Device(name, description, laboratory));
+    }
+
+    /**
+     * Lists devices; both filters are optional and can be combined.
+     */
+    public List<Device> list(Long laboratoryId, DeviceStatus status) {
+        if (laboratoryId != null && status != null) {
+            return repository.findByLaboratoryIdAndStatus(laboratoryId, status);
+        }
+        if (laboratoryId != null) {
+            return repository.findByLaboratoryId(laboratoryId);
+        }
+        if (status != null) {
+            return repository.findByStatus(status);
+        }
+        return repository.findAll();
+    }
+
+    public Device updateStatus(Long id, DeviceStatus status) {
+        if (status == null) {
+            throw new InvalidDeviceException("Device status must not be null");
+        }
+
+        Device device = repository.findById(id)
+                .orElseThrow(() -> new DeviceNotFoundException("Device not found"));
+        device.setStatus(status);
+
+        return repository.save(device);
     }
 }

@@ -156,4 +156,22 @@ class DeviceServiceTest {
         assertInvalidDevice("Device status must not be null",
                 () -> service.updateStatus(5L, null));
     }
+
+    @Test
+    void shouldFindDeviceById() {
+        Device device = new Device("Multimeter", null, laboratory);
+        when(repository.findById(5L)).thenReturn(Optional.of(device));
+
+        assertSame(device, service.findById(5L));
+    }
+
+    @Test
+    void shouldRejectFindByIdWhenDeviceDoesNotExist() {
+        when(repository.findById(99L)).thenReturn(Optional.empty());
+
+        DeviceNotFoundException exception = assertThrows(DeviceNotFoundException.class,
+                () -> service.findById(99L));
+
+        assertEquals("Device not found", exception.getMessage());
+    }
 }

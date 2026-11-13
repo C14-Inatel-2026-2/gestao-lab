@@ -81,7 +81,7 @@ No GitHub, abra **Settings > Webhooks > Add webhook** e configure:
 | Events | `Just the push event` |
 | Active | Habilitado |
 
-No Jenkins, salve novamente o job após enviar o `Jenkinsfile` atualizado à `main`. Faça um push de teste na `main` e confira o novo build no Jenkins. Como o job está limitado a `*/main`, commits em outras branches não devem executá-lo.
+No Jenkins, confirme que o job usa `*/main`, salve e execute **Build Now** uma vez após enviar o `Jenkinsfile` atualizado à `main`. Essa execução carrega o arquivo e registra o gatilho `githubPush()`. Depois, faça um push de teste na `main` e confira o novo build no Jenkins. Como o job está limitado a `*/main`, commits em outras branches não devem executá-lo. O evento é disparado ao enviar commits ao GitHub, inclusive por merge; commits que existem apenas na máquina local não geram webhook.
 
 No GitHub, abra o webhook criado e confira **Recent Deliveries**. Uma entrega com resposta HTTP `200` ou `302` indica que o endpoint do Jenkins foi alcançado. Se a entrega falhar, confira se o container Jenkins e o túnel continuam em execução, e se a URL termina com `/github-webhook/`.
 
@@ -99,3 +99,9 @@ Use **Build Now**. O resultado esperado é:
 O Jenkins arquiva o JAR e os relatórios de teste. Depois da última etapa, acompanhe o deploy no painel do Render e consulte `https://<servico>.onrender.com/actuator/health` quando ele terminar.
 
 O arquivo `compose.deploy.yaml` não é usado por esse pipeline. Ele continua útil somente para subir e verificar o backend localmente de forma manual.
+
+## 8. Executar em um agente Windows
+
+O pipeline também suporta Jenkins ou agente instalado diretamente no Windows. Nesse ambiente, testes e build usam `mvnw.cmd` e o deploy usa Windows PowerShell com `Invoke-WebRequest`. Instale Git, JDK 21 e Windows PowerShell no agente e garanta que estejam disponíveis para a conta que executa o Jenkins. Cadastre a mesma credencial `render-deploy-hook` e configure o job e o webhook conforme as etapas anteriores.
+
+O container Docker apresentado neste guia executa Linux mesmo quando o host é Windows; nesse caso, o pipeline usa os comandos Unix.

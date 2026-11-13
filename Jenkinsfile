@@ -7,6 +7,10 @@ pipeline {
         skipStagesAfterUnstable()
     }
 
+    triggers {
+        githubPush()
+    }
+
     environment {
         BACKEND_DIR = 'backend'
     }
@@ -21,7 +25,13 @@ pipeline {
         stage('Test') {
             steps {
                 dir(env.BACKEND_DIR) {
-                    bat 'mvnw.cmd clean test'
+                    script {
+                        if (isUnix()) {
+                            sh 'sh ./mvnw clean test'
+                        } else {
+                            bat 'mvnw.cmd clean test'
+                        }
+                    }
                 }
             }
             post {
@@ -37,28 +47,66 @@ pipeline {
         stage('Build') {
             steps {
                 dir(env.BACKEND_DIR) {
-                    bat 'mvnw.cmd package -DskipTests'
+                    script {
+                        if (isUnix()) {
+                            sh 'sh ./mvnw verify -DskipTests'
+                        } else {
+                            bat 'mvnw.cmd verify -DskipTests'
+                        }
+                    }
                 }
             }
         }
 
-        stage('Deploy') {
+        stage('Disparar deploy no Render') {
             steps {
-                withCredentials([string(
-                    credentialsId: 'gestao-lab-db-password',
-                    variable: 'DEPLOY_DB_PASSWORD'
-                )]) {
-                    bat 'docker compose -p gestao-lab-local -f compose.deploy.yaml up -d --build --wait --wait-timeout 180'
-                    bat 'docker compose -p gestao-lab-local -f compose.deploy.yaml ps'
-                }
-                powershell '''
-                    $ErrorActionPreference = 'Stop'
-                    $health = Invoke-RestMethod 'http://localhost:8082/actuator/health' -TimeoutSec 15
-                    if ($health.status -ne 'UP') {
-                        throw 'Backend indisponivel apos o deploy.'
+                withCredentials([
+                    string(
+                        credentialsId: 'render-deploy-hook',
+                        variable: 'RENDER_DEPLOY_HOOK_URL'
+                    )
+                ]) {
+                    script {
+                        if (isUnix()) {
+                            sh '''
+                    set +x
+                    set -eu
+
+                    COMMIT_SHA="$(git rev-parse HEAD)"
+
+                    case "$RENDER_DEPLOY_HOOK_URL" in
+                        *'?'*) SEPARATOR='&' ;;
+                        *)    SEPARATOR='?' ;;
+                    esac
+
+                    curl --fail --silent --show-error \
+                        --connect-timeout 15 \
+                        --max-time 60 \
+                        --output /dev/null \
+                        --request POST \
+                        "${RENDER_DEPLOY_HOOK_URL}${SEPARATOR}ref=${COMMIT_SHA}"
+                            '''
+                        } else {
+                            powershell '''
+                                $ErrorActionPreference = 'Stop'
+                                $commitSha = git rev-parse HEAD
+                                if ($LASTEXITCODE -ne 0) {
+                                    throw 'Nao foi possivel obter o commit para deploy.'
+                                }
+                                $commitSha = $commitSha.Trim()
+                                $separator = if ($env:RENDER_DEPLOY_HOOK_URL.Contains('?')) { '&' } else { '?' }
+                                $deployUrl = $env:RENDER_DEPLOY_HOOK_URL + $separator + 'ref=' + $commitSha
+
+                                try {
+                                    Invoke-WebRequest -Uri $deployUrl -Method Post -TimeoutSec 60 -UseBasicParsing | Out-Null
+                                } catch {
+                                    throw 'Falha ao solicitar deploy no Render.'
+                                }
+                            '''
+                        }
                     }
-                    Write-Host 'Backend disponivel: UP'
-                '''
+                }
+                echo 'Deploy solicitado ao Render. A conclusao deve ser acompanhada no Render.'
             }
         }
     }

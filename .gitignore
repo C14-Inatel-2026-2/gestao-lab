@@ -56,3 +56,6 @@ target/
 # Database files
 *.db
 
+# IDE and OS
+.idea/
+**/.DS_Store

@@ -1,9 +1,12 @@
 package br.inatel.labs.service;
 
+import br.inatel.labs.exception.LaboratoryNotFoundException;
 import br.inatel.labs.model.Laboratory;
 import br.inatel.labs.repository.LaboratoryRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 public class LaboratoryService {
@@ -21,7 +24,11 @@ public class LaboratoryService {
 
     public Laboratory findById(Long id) {
         return repository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Laboratory not found"));
+                .orElseThrow(LaboratoryNotFoundException::new);
+    }
+
+    public List<Laboratory> list() {
+        return repository.findAll();
     }
 
     @Transactional

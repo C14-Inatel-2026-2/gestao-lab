@@ -6,6 +6,9 @@ import br.inatel.labs.service.LaboratoryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -16,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -45,23 +49,11 @@ class LaboratoryServiceTest {
         verify(repository).save(argThat(saved -> name.equals(saved.getName())));
     }
 
-    @Test
-    void shouldRejectNullName() {
-        assertThrows(IllegalArgumentException.class, () -> service.create(null));
-
-        verifyNoInteractions(repository);
-    }
-
-    @Test
-    void shouldRejectEmptyName() {
-        assertThrows(IllegalArgumentException.class, () -> service.create(""));
-
-        verifyNoInteractions(repository);
-    }
-
-    @Test
-    void shouldRejectBlankName() {
-        assertThrows(IllegalArgumentException.class, () -> service.create("   "));
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = "   ")
+    void shouldRejectInvalidNameWhenCreating(String name) {
+        assertThrows(IllegalArgumentException.class, () -> service.create(name));
 
         verifyNoInteractions(repository);
     }
@@ -86,5 +78,38 @@ class LaboratoryServiceTest {
 
         assertEquals("Laboratory not found", exception.getMessage());
         verify(repository).findById(1L);
+    }
+
+    @Test
+    void shouldUpdateExistingLaboratory() {
+        Laboratory laboratory = new Laboratory("Nome antigo");
+        when(repository.findById(1L)).thenReturn(Optional.of(laboratory));
+        when(repository.save(laboratory)).thenReturn(laboratory);
+
+        Laboratory updated = service.update(1L, "Nome atualizado");
+
+        assertSame(laboratory, updated);
+        assertEquals("Nome atualizado", updated.getName());
+        verify(repository).save(laboratory);
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = "   ")
+    void shouldRejectInvalidNameWhenUpdating(String name) {
+        assertThrows(IllegalArgumentException.class, () -> service.update(1L, name));
+
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    void shouldRejectUpdateOfUnknownLaboratory() {
+        when(repository.findById(1L)).thenReturn(Optional.empty());
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class, () -> service.update(1L, "Lab Software"));
+
+        assertEquals("Laboratory not found", exception.getMessage());
+        verify(repository, never()).save(any(Laboratory.class));
     }
 }

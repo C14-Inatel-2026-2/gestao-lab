@@ -46,6 +46,11 @@ public class DeviceService {
         return repository.findAll();
     }
 
+    public Device findById(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new DeviceNotFoundException("Device not found"));
+    }
+
     public Device updateStatus(Long id, DeviceStatus status) {
         if (status == null) {
             throw new InvalidDeviceException("Device status must not be null");

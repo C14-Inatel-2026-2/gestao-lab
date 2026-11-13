@@ -310,8 +310,10 @@ class LaboratoryHttpTest {
     private Loan persistLoan(Laboratory laboratory) {
         User user = new User("Participante", "loan@example.test", "unused", Role.PARTICIPANT);
         entityManager.persist(user);
+        Device device = new Device("Multimetro", null, laboratory);
+        entityManager.persist(device);
         LocalDateTime start = LocalDateTime.of(2026, 11, 13, 8, 0);
-        Loan loan = new Loan(user, laboratory, start, start.plusHours(1));
+        Loan loan = new Loan(user, laboratory, device, start, start.plusHours(1));
         entityManager.persist(loan);
         return loan;
     }

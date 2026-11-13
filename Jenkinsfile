@@ -7,6 +7,10 @@ pipeline {
         skipStagesAfterUnstable()
     }
 
+    triggers {
+        githubPush()
+    }
+
     environment {
         BACKEND_DIR = 'backend'
     }

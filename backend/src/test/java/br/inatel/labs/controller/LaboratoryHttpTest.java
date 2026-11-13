@@ -1,8 +1,12 @@
 package br.inatel.labs.controller;
 
+import br.inatel.devices.model.Device;
 import br.inatel.labs.dto.LaboratoryRequest;
 import br.inatel.labs.model.Laboratory;
 import br.inatel.labs.repository.LaboratoryRepository;
+import br.inatel.loans.model.Loan;
+import br.inatel.users.model.Role;
+import br.inatel.users.model.User;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
@@ -17,8 +21,11 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -216,5 +223,96 @@ class LaboratoryHttpTest {
         entityManager.clear();
         assertThat(repository.findById(laboratory.getId()).orElseThrow().getName())
                 .isEqualTo("Nome original");
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void shouldDeleteOnlyLaboratoryWithoutLinks() throws Exception {
+        Laboratory available = repository.saveAndFlush(new Laboratory("Lab livre"));
+        Laboratory inUse = repository.saveAndFlush(new Laboratory("Lab em uso"));
+        entityManager.persist(new Device("Multimetro", null, inUse));
+        persistLoan(inUse);
+        entityManager.flush();
+        entityManager.clear();
+
+        mvc.perform(delete("/api/labs/{id}", available.getId()))
+                .andExpect(status().isNoContent());
+
+        entityManager.flush();
+        entityManager.clear();
+        assertThat(repository.existsById(available.getId())).isFalse();
+        assertThat(repository.existsById(inUse.getId())).isTrue();
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void shouldRejectDeletionWhenLaboratoryHasDevices() throws Exception {
+        Laboratory laboratory = repository.saveAndFlush(new Laboratory("Lab dispositivos"));
+        Device device = new Device("Multimetro", null, laboratory);
+        entityManager.persist(device);
+        entityManager.flush();
+        entityManager.clear();
+
+        mvc.perform(delete("/api/labs/{id}", laboratory.getId()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Laboratory has linked devices or loans"));
+
+        entityManager.clear();
+        assertThat(repository.existsById(laboratory.getId())).isTrue();
+        assertThat(entityManager.find(Device.class, device.getId())).isNotNull();
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void shouldRejectDeletionWhenLaboratoryHasLoans() throws Exception {
+        Laboratory laboratory = repository.saveAndFlush(new Laboratory("Lab emprestimos"));
+        Loan loan = persistLoan(laboratory);
+        entityManager.flush();
+        entityManager.clear();
+
+        mvc.perform(delete("/api/labs/{id}", laboratory.getId()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Laboratory has linked devices or loans"));
+
+        entityManager.clear();
+        assertThat(repository.existsById(laboratory.getId())).isTrue();
+        assertThat(entityManager.find(Loan.class, loan.getId())).isNotNull();
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void shouldReturnNotFoundWhenDeletingUnknownLaboratory() throws Exception {
+        mvc.perform(delete("/api/labs/{id}", -1L))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(roles = "PARTICIPANT")
+    void shouldForbidParticipantFromDeletingLaboratory() throws Exception {
+        Laboratory laboratory = repository.saveAndFlush(new Laboratory("Lab Software"));
+
+        mvc.perform(delete("/api/labs/{id}", laboratory.getId()))
+                .andExpect(status().isForbidden());
+
+        assertThat(repository.existsById(laboratory.getId())).isTrue();
+    }
+
+    @Test
+    void shouldRequireAuthenticationToDeleteLaboratory() throws Exception {
+        Laboratory laboratory = repository.saveAndFlush(new Laboratory("Lab Software"));
+
+        mvc.perform(delete("/api/labs/{id}", laboratory.getId()))
+                .andExpect(status().isUnauthorized());
+
+        assertThat(repository.existsById(laboratory.getId())).isTrue();
+    }
+
+    private Loan persistLoan(Laboratory laboratory) {
+        User user = new User("Participante", "loan@example.test", "unused", Role.PARTICIPANT);
+        entityManager.persist(user);
+        LocalDateTime start = LocalDateTime.of(2026, 11, 13, 8, 0);
+        Loan loan = new Loan(user, laboratory, start, start.plusHours(1));
+        entityManager.persist(loan);
+        return loan;
     }
 }

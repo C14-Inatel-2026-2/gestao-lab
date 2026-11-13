@@ -1,5 +1,6 @@
 package br.inatel.labs.service;
 
+import br.inatel.labs.exception.LaboratoryInUseException;
 import br.inatel.labs.exception.LaboratoryNotFoundException;
 import br.inatel.labs.model.Laboratory;
 import br.inatel.labs.repository.LaboratoryRepository;
@@ -37,6 +38,15 @@ public class LaboratoryService {
         Laboratory laboratory = findById(id);
         laboratory.setName(name);
         return repository.save(laboratory);
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        Laboratory laboratory = findById(id);
+        if (repository.hasDevices(id) || repository.hasLoans(id)) {
+            throw new LaboratoryInUseException();
+        }
+        repository.delete(laboratory);
     }
 
     private void validateName(String name) {

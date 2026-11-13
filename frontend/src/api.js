@@ -1,15 +1,18 @@
-/** Autenticacao, inventario e constantes compartilhadas.*/
+/**
+ * Cliente HTTP do backend e constantes compartilhadas.
+ *
+ * Nao existe mais modo de demonstracao: tudo aqui fala com a API real.
+ * Em desenvolvimento o proxy do Vite encaminha /api para o backend, o que
+ * mantem as chamadas na mesma origem e dispensa CORS no servidor.
+ */
 
-export const USE_MOCK = true;
-const API_URL = 'http://localhost:8080/api';
+/** Para servir a interface em outra origem, defina window.__GESTAO_LAB_API__. */
+const API_BASE = globalThis.__GESTAO_LAB_API__ ?? '/api';
 
-/** Senha unica das contas do ambiente de demonstracao. */
-export const SENHA_PADRAO = '123456';
-
-/** Perfis de acesso, espelhando o enum Role do backend */
+/** Perfis de acesso, espelhando o enum Role de br.inatel.users. */
 export const ROLE_LABELS = { ADMIN: 'Administrador', PARTICIPANT: 'Participante' };
 
-/** Situacao do equipamento, espelhando o enum DeviceStatus de br.inatel.devices */
+/** Situacao do equipamento, espelhando o enum DeviceStatus de br.inatel.devices. */
 export const STATUS = {
   AVAILABLE: 'AVAILABLE',
   BORROWED: 'BORROWED',
@@ -23,7 +26,12 @@ export const STATUS_LABELS = {
   [STATUS.MAINTENANCE]: 'Em manutencao',
 };
 
-export const STORAGE_KEYS = { TOKEN: 'gestao-lab:token', USER: 'gestao-lab:user' };
+/** Sessao inteira numa chave: o backend devolve token e usuario no mesmo login. */
+export const STORAGE_KEY = 'gestao-lab:sessao';
+
+/** Regras de senha, espelhando UserService.isPasswordValid e RegisterRequest. */
+export const SENHA_MIN = 8;
+export const SENHA_MAX = 72;
 
 export class ApiError extends Error {
   constructor(message, status) {
@@ -40,100 +48,132 @@ export function initials(name) {
   return (p.length === 1 ? p[0].slice(0, 2) : p[0][0] + p[p.length - 1][0]).toUpperCase();
 }
 
-/** Compara ignorando acento e caixa. */
-const normalizar = (v) =>
-  String(v ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+/** Mensagem de erro do email, ou string vazia se estiver valido. */
+export function emailInvalido(email) {
+  const valor = String(email ?? '').trim();
+  if (!valor) return 'Informe o email institucional.';
+  if (!/^\S+@\S+\.\S+$/.test(valor)) return 'Email invalido.';
+  return '';
+}
 
-const combina = (termo, ...valores) =>
-  !normalizar(termo) || valores.some((v) => normalizar(v).includes(normalizar(termo)));
+/**
+ * Mensagem de erro da senha, ou string vazia se estiver valida.
+ * As regras sao as mesmas do backend: recusar aqui evita um 400 previsivel.
+ */
+export function senhaInvalida(senha) {
+  const valor = String(senha ?? '');
+  if (!valor) return 'Informe a senha.';
+  if (valor.length < SENHA_MIN) return `A senha deve ter no minimo ${SENHA_MIN} caracteres.`;
+  if (valor.length > SENHA_MAX) return `A senha deve ter no maximo ${SENHA_MAX} caracteres.`;
+  if (!/[A-Z]/.test(valor)) return 'A senha deve ter ao menos uma letra maiuscula.';
+  if (!/\d/.test(valor)) return 'A senha deve ter ao menos um digito.';
+  return '';
+}
 
-
-/** Unico ponto de fetch: injeta JSON e traduz erro do Spring em ApiError. */
-async function requisitar(caminho, opcoes = {}) {
-  const r = await fetch(`${API_URL}${caminho}`, {
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    ...opcoes,
-  });
-
-  const texto = await r.text();
-  let dados = null;
-  if (texto) {
-    try {
-      dados = JSON.parse(texto);
-    } catch {
-      dados = texto;
+/**
+ * Laboratorios presentes na lista de dispositivos, ordenados por nome.
+ *
+ * O backend ainda nao expoe GET /api/labs, mas cada DeviceResponse carrega
+ * laboratoryId e laboratoryName - o suficiente para montar os filtros e a
+ * selecao de laboratorio do emprestimo sem endpoint proprio.
+ */
+export function laboratoriosDe(dispositivos) {
+  const porId = new Map();
+  for (const d of dispositivos ?? []) {
+    if (d?.laboratoryId != null && !porId.has(d.laboratoryId)) {
+      porId.set(d.laboratoryId, { id: d.laboratoryId, nome: d.laboratoryName ?? `Laboratorio ${d.laboratoryId}` });
     }
   }
+  return [...porId.values()].sort((a, b) => a.nome.localeCompare(b.nome));
+}
 
-  if (!r.ok) {
-    const msg = dados?.message || dados?.error || dados?.detail || `Falha na requisicao (HTTP ${r.status})`;
-    throw new ApiError(msg, r.status);
+/* Sessao expirada */
+
+let aoExpirar = () => {};
+
+/** O AuthContext registra aqui o encerramento da sessao em qualquer 401. */
+export function registrarExpiracao(callback) {
+  aoExpirar = typeof callback === 'function' ? callback : () => {};
+}
+
+/**
+ * Unico ponto de fetch: injeta JSON e o Bearer, e traduz o corpo de erro do
+ * Spring em ApiError. Todos os handlers do backend respondem {"message": "..."}.
+ */
+async function requisitar(caminho, { metodo = 'GET', corpo, token } = {}) {
+  const resposta = await fetch(`${API_BASE}${caminho}`, {
+    method: metodo,
+    headers: {
+      Accept: 'application/json',
+      ...(corpo === undefined ? {} : { 'Content-Type': 'application/json' }),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    ...(corpo === undefined ? {} : { body: JSON.stringify(corpo) }),
+  });
+
+  const dados = await resposta.json().catch(() => null);
+
+  if (!resposta.ok) {
+    // Token ausente, invalido ou expirado - inclusive apos reinicio do backend,
+    // porque as sessoes do TokenService ficam em memoria.
+    if (resposta.status === 401 && token) aoExpirar();
+    throw new ApiError(dados?.message ?? `Falha na requisicao (HTTP ${resposta.status})`, resposta.status);
   }
   return dados;
 }
 
-/* Dados em memoria  */
+/* Autenticacao - rotas publicas */
 
-const criarUsuarios = () => [
-  { id: 1, name: 'Solange Ribeiro da Fonseca', email: 'solange@inatel.br', role: 'ADMIN', registration: 'GEC-1001', active: true },
-  { id: 2, name: 'Mauro Iwama', email: 'mauro@inatel.br', role: 'ADMIN', registration: 'GEC-1002', active: true },
-  { id: 3, name: 'Giovana Franciele Gonçalves Leite', email: 'giovana@inatel.br', role: 'PARTICIPANT', registration: 'GEC-1003', active: true },
-  { id: 4, name: 'Igor Nogueira Olivio', email: 'igor@inatel.br', role: 'PARTICIPANT', registration: 'GEC-1004', active: true },
-  { id: 5, name: 'Lucas Nolasco Ynoguti', email: 'lucas@inatel.br', role: 'PARTICIPANT', registration: 'GEC-1005', active: true },
-  // Inativa de proposito: demonstra o bloqueio de usuario desativado.
-  { id: 6, name: 'Ana Beatriz Moura', email: 'ana@inatel.br', role: 'PARTICIPANT', registration: 'GEC-1006', active: false },
-];
-
-const criarDispositivos = () => [
-  { id: 1, nome: 'Raspberry Pi 4 Model B', patrimonio: 'IOT-0001', categoria: 'Placa', laboratorio: 'Laboratorio de IoT', status: 'BORROWED' },
-  { id: 2, nome: 'ESP32 DevKit v1', patrimonio: 'IOT-0002', categoria: 'Placa', laboratorio: 'Laboratorio de IoT', status: 'AVAILABLE' },
-  { id: 3, nome: 'Sensor BME280', patrimonio: 'IOT-0003', categoria: 'Sensor', laboratorio: 'Laboratorio de IoT', status: 'AVAILABLE' },
-  { id: 4, nome: 'Modulo LoRa SX1276', patrimonio: 'IOT-0004', categoria: 'Modulo', laboratorio: 'Laboratorio de IoT', status: 'MAINTENANCE' },
-  { id: 5, nome: 'Switch Cisco Catalyst 2960', patrimonio: 'NET-0001', categoria: 'Rede', laboratorio: 'Laboratorio de Redes', status: 'BORROWED' },
-  { id: 6, nome: 'Roteador Mikrotik hEX', patrimonio: 'NET-0002', categoria: 'Rede', laboratorio: 'Laboratorio de Redes', status: 'AVAILABLE' },
-  { id: 7, nome: 'Servo Motor MG996R', patrimonio: 'ROB-0001', categoria: 'Atuador', laboratorio: 'Laboratorio de Robotica', status: 'AVAILABLE' },
-  { id: 8, nome: 'Fonte de Bancada 30V/5A', patrimonio: 'ROB-0002', categoria: 'Instrumento', laboratorio: 'Laboratorio de Robotica', status: 'MAINTENANCE' },
-];
-
-let usuarios = criarUsuarios();
-let dispositivos = criarDispositivos();
-
-/** Usados pelos testes para garantir isolamento entre cenarios. */
-export const resetUsuarios = () => { usuarios = criarUsuarios(); };
-export const resetDispositivos = () => { dispositivos = criarDispositivos(); };
-
-/** Contas da tela de login, derivadas dos usuarios ativos - fonte unica. */
-export const CONTAS_DEMO = criarUsuarios()
-  .filter((u) => u.active)
-  .map(({ name, email, role }) => ({ name, email, role }));
-
-// Pequeno atraso para a interface exercitar o estado de carregando.
-const atraso = () => new Promise((r) => setTimeout(r, 150));
-
-/* Usado pela interface */
-
-export async function login(email, password) {
-  if (!USE_MOCK) {
-    return requisitar('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
-  }
-  await atraso();
-
-  const u = usuarios.find((x) => normalizar(x.email) === normalizar(email));
-  if (!u) throw new ApiError('Usuario nao encontrado.', 401);
-  if (!u.active) throw new ApiError('Usuario inativo. Procure um administrador.', 403);
-  if (password !== SENHA_PADRAO) throw new ApiError('Email ou senha invalidos.', 401);
-
-  const { password: _, ...dados } = u;
-  return { token: `mock-token-${u.id}`, user: dados };
+/** POST /api/auth/register -> 201 { userId, name, email, role }. Nao faz login. */
+export function cadastrar({ name, email, password }) {
+  return requisitar('/auth/register', { metodo: 'POST', corpo: { name, email, password } });
 }
 
-export async function listarDispositivos({ q = '', status = '' } = {}) {
-  if (!USE_MOCK) {
-    return requisitar(`/devices?${new URLSearchParams({ q, status })}`);
-  }
-  await atraso();
+/** POST /api/auth/login -> 200 { token, userId, name, email, role }. */
+export function login(email, password) {
+  return requisitar('/auth/login', { metodo: 'POST', corpo: { email, password } });
+}
 
-  return dispositivos
-    .filter((d) => (status ? d.status === status : true))
-    .filter((d) => combina(q, d.nome, d.patrimonio, d.categoria, d.laboratorio));
+/* Dispositivos */
+
+/** GET /api/devices?laboratoryId=&status= -> lista de DeviceResponse. */
+export function listarDispositivos({ token, laboratoryId = '', status = '' } = {}) {
+  const busca = new URLSearchParams();
+  if (laboratoryId) busca.set('laboratoryId', laboratoryId);
+  if (status) busca.set('status', status);
+  const query = busca.toString();
+  return requisitar(`/devices${query ? `?${query}` : ''}`, { token });
+}
+
+/** POST /api/devices -> 201. Exige perfil ADMIN. */
+export function criarDispositivo({ token, name, description, laboratoryId }) {
+  return requisitar('/devices', {
+    metodo: 'POST',
+    token,
+    corpo: { name, description: description || null, laboratoryId: Number(laboratoryId) },
+  });
+}
+
+/** PATCH /api/devices/{id}/status -> 200. Exige perfil ADMIN. */
+export function alterarStatus({ token, id, status }) {
+  return requisitar(`/devices/${id}/status`, { metodo: 'PATCH', token, corpo: { status } });
+}
+
+/* Emprestimos e usuarios */
+
+/**
+ * POST /api/loans -> 201 { id, userId, laboratoryId, startDateTime, endDateTime }.
+ * O solicitante nao vai no corpo: o backend usa o usuario autenticado.
+ */
+export function solicitarEmprestimo({ token, laboratoryId, startDateTime, endDateTime }) {
+  return requisitar('/loans', {
+    metodo: 'POST',
+    token,
+    corpo: { laboratoryId: Number(laboratoryId), startDateTime, endDateTime },
+  });
+}
+
+/** PATCH /api/users/{id}/promote -> 200. Exige perfil ADMIN. */
+export function promoverUsuario({ token, id }) {
+  return requisitar(`/users/${id}/promote`, { metodo: 'PATCH', token });
 }

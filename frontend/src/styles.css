@@ -106,22 +106,6 @@ p { margin: 0; }
 .login__desc { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
 
 /* ---------- Contas de demonstracao ---------- */
-.demo { font-size: 13px; color: var(--text-muted); background: var(--surface-alt); padding: 16px; border-radius: var(--radius); }
-.demo__sub { margin-top: 8px; font-size: 12px; }
-.demo code { font-size: 12px; background: var(--surface); padding: 1px 5px; border-radius: 4px; border: 1px solid var(--border); }
-.demo__lista { list-style: none; padding: 0; margin: 12px 0 0; display: flex; flex-direction: column; gap: 4px; }
-.demo__conta {
-  width: 100%;
-  display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2px 12px;
-  text-align: left; font-family: inherit; cursor: pointer;
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 8px 12px;
-}
-.demo__conta:hover { border-color: var(--brand); background: var(--brand-soft); }
-.demo__nome { font-size: 13px; font-weight: 600; color: var(--text); }
-.demo__email { font-size: 12px; color: var(--text-muted); grid-column: 1; }
-.demo__conta .badge { grid-column: 2; grid-row: 1 / span 2; }
-
 @media (max-width: 900px) {
   .login { grid-template-columns: 1fr; }
   .login__aside { display: none; }
@@ -179,3 +163,33 @@ p { margin: 0; }
   .topo { padding: 12px 16px; }
   .conteudo { padding: 16px; }
 }
+
+/* ---------- Links, avisos e paineis ---------- */
+.link {
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: var(--brand); font: inherit; font-weight: 600; text-decoration: underline;
+}
+.link:hover { color: var(--brand-strong); }
+
+.login__rodape { font-size: 13px; color: var(--text-muted); text-align: center; }
+
+.aviso {
+  background: var(--brand-soft); border: 1px solid var(--brand);
+  color: var(--brand-strong); border-radius: var(--radius); padding: 10px 12px; font-size: 13px;
+}
+
+.ajuda { font-size: 12px; color: var(--text-muted); }
+
+.acoes { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; }
+
+.painel {
+  width: 100%; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.painel__titulo { margin: 0; font-size: 15px; font-weight: 600; }
+.painel__linha { display: flex; flex-wrap: wrap; gap: 12px; }
+.painel__linha .field { flex: 1 1 180px; }
+.painel__acoes { display: flex; gap: 8px; }
+
+.field__control--inline { padding: 4px 8px; font-size: 13px; }

@@ -1,23 +1,52 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useAuth } from './AuthContext';
-import { ROLE_LABELS, STATUS, STATUS_LABELS, initials } from './api';
-import { useDispositivos } from './useDispositivos';
+import { alterarStatus, initials, ROLE_LABELS, STATUS, STATUS_LABELS } from './api';
+import { useDispositivos, useLaboratorios } from './useDispositivos';
+import NovoDispositivo from './NovoDispositivo';
+import EmprestimoForm from './EmprestimoForm';
 
 const COLUNAS = [
-  ['Dispositivo', 'nome'],
-  ['Patrimonio', 'patrimonio'],
-  ['Categoria', 'categoria'],
-  ['Laboratorio', 'laboratorio'],
+  ['Dispositivo', 'name'],
+  ['Descricao', 'description'],
+  ['Laboratorio', 'laboratoryName'],
 ];
 
-/** Inventario de equipamentos, com busca e filtro por situacao. */
+/** Compara ignorando acento e caixa. */
+const normalizar = (v) =>
+  String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+
+/** Inventario de equipamentos, com filtros da API e busca por texto na tela. */
 export default function DispositivosPage() {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, token, logout, isAdmin } = useAuth();
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
-  const { itens, carregando, erro } = useDispositivos({ q, status });
+  const [laboratorioId, setLaboratorioId] = useState('');
+  const [erroAcao, setErroAcao] = useState('');
 
-  const disponiveis = itens.filter((d) => d.status === STATUS.AVAILABLE).length;
+  // laboratoryId e status sao filtros do GET /api/devices; q e aplicado aqui,
+  // porque o endpoint nao tem parametro de busca por texto.
+  const { itens, carregando, erro, recarregar, versao } = useDispositivos({ token, laboratoryId: laboratorioId, status });
+
+  const laboratorios = useLaboratorios({ token, versao });
+
+  const visiveis = useMemo(() => {
+    const termo = normalizar(q);
+    if (!termo) return itens;
+    return itens.filter((d) =>
+      [d.name, d.description, d.laboratoryName].some((v) => normalizar(v).includes(termo)));
+  }, [itens, q]);
+
+  const disponiveis = visiveis.filter((d) => d.status === STATUS.AVAILABLE).length;
+
+  async function mudarStatus(id, novo) {
+    setErroAcao('');
+    try {
+      await alterarStatus({ token, id, status: novo });
+      recarregar();
+    } catch (e) {
+      setErroAcao(e.message || 'Nao foi possivel alterar a situacao.');
+    }
+  }
 
   return (
     <div className="app">
@@ -31,26 +60,44 @@ export default function DispositivosPage() {
         </div>
 
         <div className="topo__usuario">
-          <span className="avatar avatar--sm" aria-hidden="true">{initials(user.name)}</span>
+          <span className="avatar avatar--sm" aria-hidden="true">{initials(user?.name)}</span>
           <div>
-            <h1 className="topo__ola">Ola, {String(user.name).split(' ')[0]}</h1>
-            <span className="badge">{ROLE_LABELS[user.role]}</span>
+            <h1 className="topo__ola">Ola, {String(user?.name ?? '').split(' ')[0]}</h1>
+            <span className="badge">{ROLE_LABELS[user?.role] ?? user?.role}</span>
           </div>
           <button type="button" className="btn btn--secondary btn--sm" onClick={logout}>Sair</button>
         </div>
       </header>
 
       <main className="conteudo">
+        <div className="acoes">
+          <EmprestimoForm token={token} laboratorios={laboratorios} />
+          {isAdmin && <NovoDispositivo token={token} laboratorios={laboratorios} onCriado={recarregar} />}
+        </div>
+
         <div className="filtros">
           <div className="field">
             <label className="field__label" htmlFor="q">Buscar</label>
             <input
               id="q"
               className="field__control"
-              placeholder="Nome, patrimonio, categoria ou laboratorio"
+              placeholder="Nome, descricao ou laboratorio"
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
+          </div>
+
+          <div className="field">
+            <label className="field__label" htmlFor="laboratorio">Laboratorio</label>
+            <select
+              id="laboratorio"
+              className="field__control"
+              value={laboratorioId}
+              onChange={(e) => setLaboratorioId(e.target.value)}
+            >
+              <option value="">Todos</option>
+              {laboratorios.map((l) => <option key={l.id} value={l.id}>{l.nome}</option>)}
+            </select>
           </div>
 
           <div className="field">
@@ -64,18 +111,19 @@ export default function DispositivosPage() {
           </div>
         </div>
 
+        {erroAcao && <div className="alert" role="alert">{erroAcao}</div>}
         {erro && <div className="alert" role="alert">{erro}</div>}
 
         {carregando && <p className="muted" role="status">Carregando inventario...</p>}
 
-        {!carregando && !erro && itens.length === 0 && (
+        {!carregando && !erro && visiveis.length === 0 && (
           <p className="vazio">Nenhum dispositivo encontrado.</p>
         )}
 
-        {!carregando && !erro && itens.length > 0 && (
+        {!carregando && !erro && visiveis.length > 0 && (
           <>
             <p className="resumo">
-              {itens.length} dispositivo(s) · <strong>{disponiveis}</strong> disponivel(is)
+              {visiveis.length} dispositivo(s) · <strong>{disponiveis}</strong> disponivel(is)
             </p>
 
             <table className="tabela">
@@ -86,15 +134,30 @@ export default function DispositivosPage() {
                 </tr>
               </thead>
               <tbody>
-                {itens.map((d) => (
+                {visiveis.map((d) => (
                   <tr key={d.id}>
                     {COLUNAS.map(([titulo, campo]) => (
-                      <td key={titulo} className={campo === 'nome' ? 'tabela__nome' : undefined}>{d[campo]}</td>
+                      <td key={titulo} className={campo === 'name' ? 'tabela__nome' : undefined}>
+                        {d[campo] || '—'}
+                      </td>
                     ))}
                     <td>
-                      <span className={`situacao situacao--${d.status.toLowerCase()}`}>
-                        {STATUS_LABELS[d.status]}
-                      </span>
+                      {isAdmin ? (
+                        <select
+                          className="field__control field__control--inline"
+                          aria-label={`Situacao de ${d.name}`}
+                          value={d.status}
+                          onChange={(e) => mudarStatus(d.id, e.target.value)}
+                        >
+                          {Object.entries(STATUS_LABELS).map(([v, rotulo]) => (
+                            <option key={v} value={v}>{rotulo}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className={`situacao situacao--${String(d.status).toLowerCase()}`}>
+                          {STATUS_LABELS[d.status] ?? d.status}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -105,8 +168,8 @@ export default function DispositivosPage() {
 
         <p className="rodape">
           {isAdmin
-            ? 'Como administrador, voce pode cadastrar itens e aprovar emprestimos.'
-            : 'Como participante, voce pode solicitar emprestimos dos itens disponiveis.'}
+            ? 'Como administrador, voce pode cadastrar dispositivos e alterar a situacao de cada item.'
+            : 'Como participante, voce pode solicitar emprestimos de laboratorio.'}
         </p>
       </main>
     </div>

@@ -1,35 +1,22 @@
 import { useState } from 'react';
 import { useAuth } from './AuthContext';
-import { USE_MOCK, ROLE_LABELS, CONTAS_DEMO, SENHA_PADRAO } from './api';
+import { emailInvalido, senhaInvalida } from './api';
+import Campo from './Campo';
 
-
-/** Tamanho minimo da senha aceito pelo formulario. */
-const SENHA_MIN = 6;
-
-/** Campo de formulario com rotulo e mensagem de erro. */
-function Campo({ id, label, erro, ...props }) {
-  return (
-    <div className="field">
-      <label className="field__label" htmlFor={id}>{label}</label>
-      <input id={id} className={`field__control ${erro ? 'field__control--error' : ''}`} {...props} />
-      {erro && <span className="field__error">{erro}</span>}
-    </div>
-  );
-}
-
-export default function LoginPage() {
-  const { login, loading } = useAuth();
+export default function LoginPage({ onIrParaCadastro }) {
+  const { login, loading, expirada } = useAuth();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [erros, setErros] = useState({});
   const [erroGeral, setErroGeral] = useState('');
 
   function validar() {
+    // Mesmas regras do backend: barrar aqui evita um 400 ou 401 previsivel.
     const novos = {};
-    if (!email.trim()) novos.email = 'Informe o email institucional.';
-    else if (!/^\S+@\S+\.\S+$/.test(email.trim())) novos.email = 'Email invalido.';
-    if (!senha) novos.senha = 'Informe a senha.';
-    else if (senha.length < SENHA_MIN) novos.senha = `A senha deve ter no minimo ${SENHA_MIN} caracteres.`;
+    const email_ = emailInvalido(email);
+    const senha_ = senhaInvalida(senha);
+    if (email_) novos.email = email_;
+    if (senha_) novos.senha = senha_;
     setErros(novos);
     return Object.keys(novos).length === 0;
   }
@@ -40,17 +27,10 @@ export default function LoginPage() {
     if (!validar()) return;
 
     try {
-      await login(email, senha);
+      await login(email.trim(), senha);
     } catch (error) {
       setErroGeral(error.message || 'Nao foi possivel entrar.');
     }
-  }
-
-  function preencher(conta) {
-    setEmail(conta.email);
-    setSenha(SENHA_PADRAO);
-    setErros({});
-    setErroGeral('');
   }
 
   return (
@@ -69,6 +49,10 @@ export default function LoginPage() {
             <h1>Entrar</h1>
             <p className="login__desc">Use suas credenciais institucionais.</p>
           </div>
+
+          {expirada && (
+            <div className="aviso" role="status">Sua sessao expirou. Entre novamente.</div>
+          )}
 
           {erroGeral && <div className="alert" role="alert">{erroGeral}</div>}
 
@@ -98,24 +82,10 @@ export default function LoginPage() {
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
 
-          {USE_MOCK && (
-            <div className="demo">
-              <strong>Ambiente de demonstracao</strong>
-              <p className="demo__sub">Senha para todos: <code>{SENHA_PADRAO}</code></p>
-              <ul className="demo__lista">
-                {CONTAS_DEMO.map((conta) => (
-                  <li key={conta.email}>
-                    <button type="button" className="demo__conta" onClick={() => preencher(conta)}>
-                      <span className="demo__nome">{conta.name}</span>
-                      <span className="demo__email">{conta.email}</span>
-                      <span className="badge">{ROLE_LABELS[conta.role]}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              <p className="demo__sub">Clique em um nome para preencher os campos.</p>
-            </div>
-          )}
+          <p className="login__rodape">
+            Primeiro acesso?{' '}
+            <button type="button" className="link" onClick={onIrParaCadastro}>Criar uma conta</button>
+          </p>
         </form>
       </div>
     </div>

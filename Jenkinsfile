@@ -49,9 +49,9 @@ pipeline {
                 dir(env.BACKEND_DIR) {
                     script {
                         if (isUnix()) {
-                            sh 'sh ./mvnw package -DskipTests'
+                            sh 'sh ./mvnw verify -DskipTests'
                         } else {
-                            bat 'mvnw.cmd package -DskipTests'
+                            bat 'mvnw.cmd verify -DskipTests'
                         }
                     }
                 }

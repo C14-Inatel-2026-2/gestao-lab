@@ -2,6 +2,7 @@ package br.inatel.labs.controller;
 
 import br.inatel.labs.model.Laboratory;
 import br.inatel.labs.repository.LaboratoryRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -9,12 +10,15 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -30,6 +34,7 @@ class LaboratoryHttpTest {
     @Autowired MockMvc mvc;
     @Autowired LaboratoryRepository repository;
     @Autowired EntityManager entityManager;
+    @Autowired ObjectMapper objectMapper;
 
     @Test
     @WithMockUser(roles = "PARTICIPANT")
@@ -76,5 +81,60 @@ class LaboratoryHttpTest {
     @ValueSource(strings = {"/api/labs", "/api/labs/1"})
     void shouldRequireAuthentication(String path) throws Exception {
         mvc.perform(get(path)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void shouldCreateAndRetrieveLaboratory() throws Exception {
+        var result = mvc.perform(post("/api/labs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Lab Software\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").isNumber())
+                .andExpect(jsonPath("$.name").value("Lab Software"))
+                .andReturn();
+
+        long id = objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asLong();
+        entityManager.flush();
+        entityManager.clear();
+
+        mvc.perform(get("/api/labs/{id}", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.name").value("Lab Software"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "{}", "{\"name\":null}", "{\"name\":\"\"}", "{\"name\":\"   \"}", "{\"name\":", "null", ""
+    })
+    @WithMockUser(roles = "ADMIN")
+    void shouldRejectInvalidCreateRequests(String body) throws Exception {
+        mvc.perform(post("/api/labs").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").isNotEmpty());
+
+        assertThat(repository.count()).isZero();
+    }
+
+    @Test
+    @WithMockUser(roles = "PARTICIPANT")
+    void shouldForbidParticipantFromCreatingLaboratory() throws Exception {
+        mvc.perform(post("/api/labs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Lab Software\"}"))
+                .andExpect(status().isForbidden());
+
+        assertThat(repository.count()).isZero();
+    }
+
+    @Test
+    void shouldRequireAuthenticationToCreateLaboratory() throws Exception {
+        mvc.perform(post("/api/labs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Lab Software\"}"))
+                .andExpect(status().isUnauthorized());
+
+        assertThat(repository.count()).isZero();
     }
 }

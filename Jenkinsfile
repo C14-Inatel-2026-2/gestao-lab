@@ -66,7 +66,9 @@ pipeline {
                         variable: 'RENDER_DEPLOY_HOOK_URL'
                     )
                 ]) {
-                    sh '''
+                    script {
+                        if (isUnix()) {
+                            sh '''
                     set +x
                     set -eu
 
@@ -83,7 +85,26 @@ pipeline {
                         --output /dev/null \
                         --request POST \
                         "${RENDER_DEPLOY_HOOK_URL}${SEPARATOR}ref=${COMMIT_SHA}"
-                    '''
+                            '''
+                        } else {
+                            powershell '''
+                                $ErrorActionPreference = 'Stop'
+                                $commitSha = git rev-parse HEAD
+                                if ($LASTEXITCODE -ne 0) {
+                                    throw 'Nao foi possivel obter o commit para deploy.'
+                                }
+                                $commitSha = $commitSha.Trim()
+                                $separator = if ($env:RENDER_DEPLOY_HOOK_URL.Contains('?')) { '&' } else { '?' }
+                                $deployUrl = $env:RENDER_DEPLOY_HOOK_URL + $separator + 'ref=' + $commitSha
+
+                                try {
+                                    Invoke-WebRequest -Uri $deployUrl -Method Post -TimeoutSec 60 -UseBasicParsing | Out-Null
+                                } catch {
+                                    throw 'Falha ao solicitar deploy no Render.'
+                                }
+                            '''
+                        }
+                    }
                 }
                 echo 'Deploy solicitado ao Render. A conclusao deve ser acompanhada no Render.'
             }

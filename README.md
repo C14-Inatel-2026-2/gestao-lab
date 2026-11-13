@@ -4,10 +4,6 @@ Sistema web para controle centralizado de laboratórios acadêmicos. Cada labora
 
 Projeto acadêmico - Engenharia de Software (C14)
 
-## Status
-
-🚧 Em desenvolvimento
-
 ## Autores
 - Giovana Franciele Gonçalves Leite (@GiovanaFrancieleGLeite)
 - Igor Nogueira Olivio (@IgorNogueiraOlivio)
@@ -20,7 +16,7 @@ Projeto acadêmico - Engenharia de Software (C14)
 - Controle de acesso: perfis de Administrador e Participante, com permissões distintas.
 - Gestão de laboratórios: administradores, participantes e inventário próprios para cada laboratório.
 - Gestão de projetos: criação de projetos vinculados a laboratórios e associação de participantes e dispositivos.
-- Inventário de dispositivos: cadastro de equipamentos por laboratório e controle dos status `AVAILABLE`, `BORROWED` e `IN_MAINTENANCE`.
+- Inventário de dispositivos: cadastro de equipamentos por laboratório e controle dos status `AVAILABLE`, `BORROWED` e `MAINTENANCE`.
 - Empréstimos e devoluções: solicitação de dispositivo vinculada a um projeto, validação de disponibilidade, aprovação ou rejeição pelo administrador e registro de devolução.
 - Rastreabilidade e relatórios: histórico de movimentações, itens em atraso e alocações ativas por projeto.
 
@@ -34,6 +30,9 @@ Projeto acadêmico - Engenharia de Software (C14)
 ## Estrutura do Repositório
 
 Monorepo: backend, frontend, scripts de banco e CI/CD juntos.
+
+Consulte o [índice da documentação](docs/README.md) para convenções de API e erros,
+contratos por domínio e guias operacionais.
 
 ```
 gestao-lab/
@@ -58,7 +57,7 @@ backend/src/main/java/br/inatel/
 
 Cada domínio contém `controller/`, `service/`, `repository/`, `model/` e `dto/`.
 
-## Como Executar (ainda em desenvolvimento, testes funcionam)
+## Como Executar
 
 ```bash
 cd backend
@@ -81,7 +80,7 @@ A pipeline executa automaticamente as seguintes etapas:
 ### 📷 Evidências de Execução
 | Pipeline Jenkins | Resultado dos Testes | Relatório JaCoCo |
 | :---: | :---: | :---: |
-| ![Pipeline](docs/jenkins-pipeline.png) | ![Testes](docs/jenkins-tests.png) | ![JaCoCo](docs/jenkins-coverage.png) |
+| ![Pipeline](docs/assets/ci/jenkins-pipeline.jpeg) | ![Testes](docs/assets/ci/jenkins-tests.jpeg) | ![JaCoCo](docs/assets/ci/jacoco-coverage.jpeg) |
 
 
 ## Requisitos Funcionais
@@ -94,7 +93,7 @@ A pipeline executa automaticamente as seguintes etapas:
 | RF04 | O sistema deve permitir a criação de projetos vinculados a laboratórios. |
 | RF05 | O sistema deve permitir a associação de participantes a projetos. |
 | RF06 | O sistema deve permitir o cadastro de dispositivos por laboratório. |
-| RF07 | O sistema deve controlar os status dos dispositivos: `AVAILABLE`, `BORROWED` e `IN_MAINTENANCE`. |
+| RF07 | O sistema deve controlar os status dos dispositivos: `AVAILABLE`, `BORROWED` e `MAINTENANCE`. |
 | RF08 | O sistema deve permitir a solicitação de empréstimos de dispositivos vinculados a projetos. |
 | RF09 | O sistema deve verificar a disponibilidade dos dispositivos antes de permitir um empréstimo. |
 | RF10 | O sistema deve permitir a aprovação ou rejeição de solicitações pelo administrador. |

@@ -47,6 +47,11 @@ class LoanServiceWithFakeRepositoryTest {
         }
 
         @Override
+        public boolean existsByDeviceIdAndStatus(Long deviceId, LoanStatus status) {
+            return false;
+        }
+
+        @Override
         public boolean existsByDeviceIdAndStatusAndStartDateTimeLessThanAndEndDateTimeGreaterThan(
                 Long deviceId, LoanStatus status, LocalDateTime end, LocalDateTime start) {
             return false;

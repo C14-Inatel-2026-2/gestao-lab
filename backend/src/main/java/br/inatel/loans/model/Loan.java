@@ -13,6 +13,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+ import org.hibernate.annotations.ColumnDefault;
 
 import java.time.LocalDateTime;
 
@@ -32,8 +33,13 @@ public class Loan {
     @JoinColumn(name = "laboratory_id", nullable = false)
     private Laboratory laboratory;
 
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "device_id", nullable = false)
+    /**
+     * Required for every new loan (enforced by LoanService). The column is nullable only because
+     * SQLite cannot add a NOT NULL column to a table that already has rows: loans created before
+     * devices existed keep a null device as closed history.
+     */
+    @ManyToOne
+    @JoinColumn(name = "device_id")
     private Device device;
 
     @Column(name = "start_date_time", nullable = false)
@@ -42,8 +48,13 @@ public class Loan {
     @Column(name = "end_date_time", nullable = false)
     private LocalDateTime endDateTime;
 
+    /**
+     * The column default is what upgrades old databases: loans created before the lifecycle
+     * existed become RETURNED, i.e. closed history that never blocks a device.
+     */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @ColumnDefault("'RETURNED'")
     private LoanStatus status;
 
     protected Loan() {

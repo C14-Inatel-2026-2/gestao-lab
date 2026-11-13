@@ -26,7 +26,7 @@ public record LoanResponse(
                 loan.getId(),
                 loan.getUser().getId(),
                 loan.getLaboratory().getId(),
-                loan.getDevice().getId(),
+                loan.getDevice() == null ? null : loan.getDevice().getId(),
                 loan.getStatus(),
                 loan.getStartDateTime(),
                 loan.getEndDateTime());

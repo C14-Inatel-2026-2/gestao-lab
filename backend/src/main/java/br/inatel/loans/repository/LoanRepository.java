@@ -17,6 +17,8 @@ public interface LoanRepository extends Repository<Loan, Long> {
 
     List<Loan> findByUserId(Long userId);
 
+    boolean existsByDeviceIdAndStatus(Long deviceId, LoanStatus status);
+
     /**
      * True when a loan of the device with the given status overlaps the period
      * [start, end): it starts before {@code end} and ends after {@code start}.

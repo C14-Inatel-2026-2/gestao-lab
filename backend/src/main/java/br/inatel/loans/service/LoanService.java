@@ -83,8 +83,9 @@ public class LoanService {
     }
 
     /**
-     * Registers the return of an approved loan. The loan is kept as history and the
-     * device becomes available again, unless it is in maintenance.
+     * Registers the return of an approved loan. The loan is kept as history. The device stays
+     * borrowed while any other approved loan remains, becomes available when none is left,
+     * and is never touched while in maintenance.
      */
     @Transactional
     public Loan registerReturn(Long id) {
@@ -93,8 +94,11 @@ public class LoanService {
 
         loan.setStatus(LoanStatus.RETURNED);
         Loan saved = repository.save(loan);
-        if (loan.getDevice().getStatus() != DeviceStatus.MAINTENANCE) {
-            deviceService.updateStatus(loan.getDevice().getId(), DeviceStatus.AVAILABLE);
+        Device device = loan.getDevice();
+        if (device.getStatus() != DeviceStatus.MAINTENANCE) {
+            boolean stillCommitted = repository.existsByDeviceIdAndStatus(device.getId(), LoanStatus.APPROVED);
+            deviceService.updateStatus(device.getId(),
+                    stillCommitted ? DeviceStatus.BORROWED : DeviceStatus.AVAILABLE);
         }
         return saved;
     }

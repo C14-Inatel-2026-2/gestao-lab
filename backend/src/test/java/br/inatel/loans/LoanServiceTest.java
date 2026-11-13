@@ -364,6 +364,21 @@ class LoanServiceTest {
         assertThrows(LoanNotFoundException.class, () -> service.registerReturn(99L));
     }
 
+    @Test
+    void shouldKeepDeviceBorrowedWhileAnotherLoanIsStillApproved() {
+        Loan loan = loanWithStatus(LoanStatus.APPROVED);
+        device.setStatus(DeviceStatus.BORROWED);
+        when(repository.findById(10L)).thenReturn(Optional.of(loan));
+        when(repository.save(loan)).thenReturn(loan);
+        when(repository.existsByDeviceIdAndStatus(5L, LoanStatus.APPROVED)).thenReturn(true);
+
+        Loan returned = service.registerReturn(10L);
+
+        assertEquals(LoanStatus.RETURNED, returned.getStatus());
+        verify(deviceService).updateStatus(5L, DeviceStatus.BORROWED);
+        verify(deviceService, never()).updateStatus(5L, DeviceStatus.AVAILABLE);
+    }
+
     // ---- list ----
 
     @Test

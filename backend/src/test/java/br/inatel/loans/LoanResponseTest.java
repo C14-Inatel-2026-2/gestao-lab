@@ -42,4 +42,22 @@ class LoanResponseTest {
         assertThat(response.startDateTime()).isEqualTo(start);
         assertThat(response.endDateTime()).isEqualTo(end);
     }
+
+    @Test
+    @DisplayName("Should map a legacy loan without device")
+    void shouldMapLegacyLoanWithoutDevice() {
+        User user = new User("Ana Silva", "ana@inatel.br", "Senha123", Role.PARTICIPANT);
+        Laboratory laboratory = new Laboratory("Lab IoT");
+        LocalDateTime start = LocalDateTime.of(2026, 9, 15, 8, 0);
+        Loan loan = new Loan(user, laboratory, null, start, start.plusHours(2));
+        loan.setStatus(LoanStatus.RETURNED);
+        ReflectionTestUtils.setField(user, "id", 1L);
+        ReflectionTestUtils.setField(laboratory, "id", 2L);
+        ReflectionTestUtils.setField(loan, "id", 3L);
+
+        LoanResponse response = LoanResponse.from(loan);
+
+        assertThat(response.deviceId()).isNull();
+        assertThat(response.status()).isEqualTo(LoanStatus.RETURNED);
+    }
 }

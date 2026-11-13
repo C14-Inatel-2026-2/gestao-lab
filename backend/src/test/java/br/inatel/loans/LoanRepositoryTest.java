@@ -118,6 +118,19 @@ class LoanRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should tell whether the device has a loan with the given status")
+    void shouldTellWhetherDeviceHasLoanWithStatus() {
+        Loan loan = new Loan(user, laboratory, device, start, end);
+        loan.setStatus(LoanStatus.APPROVED);
+        loanRepository.save(loan);
+        Device otherDevice = deviceRepository.save(new Device("Oscilloscope", null, laboratory));
+
+        assertThat(loanRepository.existsByDeviceIdAndStatus(device.getId(), LoanStatus.APPROVED)).isTrue();
+        assertThat(loanRepository.existsByDeviceIdAndStatus(device.getId(), LoanStatus.RETURNED)).isFalse();
+        assertThat(loanRepository.existsByDeviceIdAndStatus(otherDevice.getId(), LoanStatus.APPROVED)).isFalse();
+    }
+
+    @Test
     @DisplayName("Should find only the loans of the given user")
     void shouldFindLoansByUser() {
         User otherUser = userRepository.save(new User("Bruno", "other.loan.user@inatel.br", "Senha123", Role.PARTICIPANT));

@@ -1,0 +1,8 @@
+node_modules
+dist
+coverage
+reports
+.env
+.env.local
+Dockerfile
+.dockerignore

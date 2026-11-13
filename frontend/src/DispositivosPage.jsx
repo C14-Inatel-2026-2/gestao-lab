@@ -3,6 +3,7 @@ import { useAuth } from './AuthContext';
 import { alterarStatus, STATUS, STATUS_LABELS } from './api';
 import { useDispositivos, useLaboratorios } from './useDispositivos';
 import NovoDispositivo from './NovoDispositivo';
+import NovoLaboratorio from './NovoLaboratorio';
 
 const COLUNAS = [
   ['Dispositivo', 'name'],
@@ -24,9 +25,11 @@ export default function DispositivosPage() {
 
   // laboratoryId e status sao filtros do GET /api/devices; q e aplicado aqui,
   // porque o endpoint nao tem parametro de busca por texto.
-  const { itens, carregando, erro, recarregar, versao } = useDispositivos({ token, laboratoryId: laboratorioId, status });
+  const { itens, carregando, erro, recarregar } = useDispositivos({ token, laboratoryId: laboratorioId, status });
 
-  const laboratorios = useLaboratorios({ token, versao });
+  // Os laboratorios tem recarga propria: vem de GET /api/labs, nao dos dispositivos.
+  const [versaoLabs, setVersaoLabs] = useState(0);
+  const { laboratorios, erro: erroLabs } = useLaboratorios({ token, versao: versaoLabs });
 
   const visiveis = useMemo(() => {
     const termo = normalizar(q);
@@ -51,6 +54,7 @@ export default function DispositivosPage() {
     <>
       {isAdmin && (
         <div className="acoes">
+          <NovoLaboratorio token={token} onCriado={() => setVersaoLabs((v) => v + 1)} />
           <NovoDispositivo token={token} laboratorios={laboratorios} onCriado={recarregar} />
         </div>
       )}
@@ -92,6 +96,7 @@ export default function DispositivosPage() {
       </div>
 
       {erroAcao && <div className="alert" role="alert">{erroAcao}</div>}
+      {erroLabs && <div className="alert" role="alert">{erroLabs}</div>}
       {erro && <div className="alert" role="alert">{erro}</div>}
 
       {carregando && <p className="muted" role="status">Carregando inventario...</p>}

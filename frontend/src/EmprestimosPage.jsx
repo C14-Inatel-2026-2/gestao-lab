@@ -3,7 +3,7 @@ import { useAuth } from './AuthContext';
 import {
   aprovarEmprestimo, LOAN_STATUS, LOAN_STATUS_LABELS, registrarDevolucao, rejeitarEmprestimo,
 } from './api';
-import { useDispositivos, useEmprestimos } from './useDispositivos';
+import { useDispositivos, useEmprestimos, useLaboratorios } from './useDispositivos';
 import EmprestimoForm from './EmprestimoForm';
 
 /** "2026-12-01T08:00" -> "01/12/2026 08:00" */
@@ -31,6 +31,8 @@ export default function EmprestimosPage() {
   // Alimenta o seletor do formulario; aprovar ou devolver muda o status do
   // dispositivo no backend, entao a lista e recarregada junto.
   const { itens: dispositivos } = useDispositivos({ token, versao });
+  // O laboratorio vem de GET /api/labs: um recem-criado ainda nao tem dispositivo.
+  const { laboratorios, erro: erroLabs } = useLaboratorios({ token, versao });
 
   const recarregar = () => setVersao((v) => v + 1);
 
@@ -50,9 +52,15 @@ export default function EmprestimosPage() {
 
   return (
     <>
-      <EmprestimoForm token={token} dispositivos={dispositivos} onSolicitado={recarregar} />
+      <EmprestimoForm
+        token={token}
+        dispositivos={dispositivos}
+        laboratorios={laboratorios}
+        onSolicitado={recarregar}
+      />
 
       {erroAcao && <div className="alert" role="alert">{erroAcao}</div>}
+      {erroLabs && <div className="alert" role="alert">{erroLabs}</div>}
       {erro && <div className="alert" role="alert">{erro}</div>}
 
       {carregando && <p className="muted" role="status">Carregando emprestimos...</p>}

@@ -4,9 +4,9 @@ import { criarDispositivo } from './api';
 /**
  * Cadastro de dispositivo (POST /api/devices), restrito a ADMIN no backend.
  *
- * O laboratorio e escolhido entre os que ja aparecem no inventario, porque o
- * backend ainda nao expoe GET /api/labs. Com o inventario vazio nao ha
- * laboratorio para listar, e o formulario explica isso em vez de quebrar.
+ * O laboratorio e escolhido entre os cadastrados em GET /api/labs. Sem nenhum
+ * laboratorio nao ha onde vincular o dispositivo, e o formulario explica isso
+ * em vez de quebrar.
  */
 export default function NovoDispositivo({ token, laboratorios, onCriado }) {
   const [aberto, setAberto] = useState(false);
@@ -52,8 +52,8 @@ export default function NovoDispositivo({ token, laboratorios, onCriado }) {
 
       {laboratorios.length === 0 ? (
         <p className="muted">
-          Nenhum laboratorio disponivel. Como o inventario esta vazio, nao ha laboratorio conhecido
-          para vincular o dispositivo.
+          Nenhum laboratorio cadastrado ainda. Cadastre um laboratorio antes de adicionar
+          dispositivos.
         </p>
       ) : (
         <div className="painel__linha">

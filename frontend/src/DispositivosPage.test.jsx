@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DispositivosPage from './DispositivosPage';
 import { useAuth } from './AuthContext';
-import { alterarStatus, listarDispositivos } from './api';
+import { alterarStatus, listarDispositivos, listarLaboratorios } from './api';
 
 /*
  * Testes unitarios COM mock.
@@ -20,8 +20,11 @@ jest.mock('./AuthContext', () => ({ useAuth: jest.fn() }));
 jest.mock('./api', () => ({
   ...jest.requireActual('./api'),
   listarDispositivos: jest.fn(),
+  listarLaboratorios: jest.fn(),
   alterarStatus: jest.fn(),
 }));
+
+const LABORATORIOS = [{ id: 1, name: 'Laboratorio de IoT' }, { id: 2, name: 'Laboratorio de Robotica' }];
 
 const ITENS = [
   { id: 1, name: 'ESP32 DevKit v1', description: 'Placa', status: 'AVAILABLE', laboratoryId: 1, laboratoryName: 'Laboratorio de IoT' },
@@ -36,6 +39,10 @@ function autenticarComo(role) {
     isAdmin: role === 'ADMIN',
   });
 }
+
+beforeEach(() => {
+  listarLaboratorios.mockResolvedValue(LABORATORIOS);
+});
 
 afterEach(() => {
   jest.clearAllMocks();
@@ -61,6 +68,19 @@ describe('DispositivosPage (com mock)', () => {
     // getByRole('cell') evita casar com a <option> do filtro de laboratorio
     expect(screen.getByRole('cell', { name: 'Laboratorio de IoT' })).toBeInTheDocument();
     expect(screen.getByText(/2 dispositivo\(s\)/)).toBeInTheDocument();
+  });
+
+  it('oferece laboratorio cadastrado que ainda nao tem dispositivo', async () => {
+    // Regressao: antes os laboratorios vinham dos dispositivos, entao um
+    // laboratorio novo e vazio nunca aparecia no filtro nem no cadastro.
+    autenticarComo('ADMIN');
+    listarDispositivos.mockResolvedValue([]);
+    listarLaboratorios.mockResolvedValue([{ id: 9, name: 'Laboratorio vazio' }]);
+
+    render(<DispositivosPage />);
+
+    const filtro = await screen.findByLabelText('Laboratorio');
+    expect(filtro).toHaveTextContent('Laboratorio vazio');
   });
 
   // CASO NEGATIVO

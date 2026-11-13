@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { laboratoriosDe, listarDispositivos, listarEmprestimos } from './api';
+import { listarDispositivos, listarEmprestimos, listarLaboratorios, opcoesDeLaboratorio } from './api';
 
 /**
  * Busca o inventario no backend e devolve o estado da requisicao.
@@ -39,27 +39,34 @@ export function useDispositivos({ token, laboratoryId = '', status = '' } = {}) 
 }
 
 /**
- * Laboratorios conhecidos, para os seletores de filtro e de cadastro.
+ * Laboratorios cadastrados, para os seletores de filtro, de cadastro de
+ * dispositivo e de emprestimo.
  *
- * Faz uma busca sem filtros e deriva os laboratorios dela. E uma chamada
- * separada de proposito: se os laboratorios saissem da lista ja filtrada, ao
- * escolher um laboratorio o seletor passaria a oferecer apenas ele.
- * Substituir por GET /api/labs quando o backend expor esse endpoint.
+ * Vem de GET /api/labs, nao dos dispositivos: um laboratorio recem-criado
+ * ainda nao tem dispositivo nenhum e precisa aparecer de todo modo.
+ *
+ * `versao` permite recarregar depois de cadastrar um laboratorio.
  */
 export function useLaboratorios({ token, versao = 0 } = {}) {
   const [laboratorios, setLaboratorios] = useState([]);
+  const [erro, setErro] = useState('');
 
   useEffect(() => {
     let ativo = true;
+    setErro('');
 
-    listarDispositivos({ token })
-      .then((dados) => ativo && setLaboratorios(laboratoriosDe(dados)))
-      .catch(() => ativo && setLaboratorios([]));
+    listarLaboratorios({ token })
+      .then((dados) => ativo && setLaboratorios(opcoesDeLaboratorio(dados)))
+      .catch((e) => {
+        if (!ativo) return;
+        setLaboratorios([]);
+        setErro(e.message || 'Nao foi possivel carregar os laboratorios.');
+      });
 
     return () => { ativo = false; };
   }, [token, versao]);
 
-  return laboratorios;
+  return { laboratorios, erro };
 }
 
 /**

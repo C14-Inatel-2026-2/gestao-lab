@@ -87,20 +87,16 @@ export function senhaInvalida(senha) {
 }
 
 /**
- * Laboratorios presentes na lista de dispositivos, ordenados por nome.
+ * Converte a resposta de GET /api/labs nas opcoes usadas pelos seletores.
  *
- * O backend ainda nao expoe GET /api/labs, mas cada DeviceResponse carrega
- * laboratoryId e laboratoryName - o suficiente para montar os filtros e a
- * selecao de laboratorio do emprestimo sem endpoint proprio.
+ * O backend devolve [{id, name}]; as telas trabalham com {id, nome}. A ordem
+ * alfabetica e aplicada aqui para nao depender da ordem do banco.
  */
-export function laboratoriosDe(dispositivos) {
-  const porId = new Map();
-  for (const d of dispositivos ?? []) {
-    if (d?.laboratoryId != null && !porId.has(d.laboratoryId)) {
-      porId.set(d.laboratoryId, { id: d.laboratoryId, nome: d.laboratoryName ?? `Laboratorio ${d.laboratoryId}` });
-    }
-  }
-  return [...porId.values()].sort((a, b) => a.nome.localeCompare(b.nome));
+export function opcoesDeLaboratorio(laboratorios) {
+  return (laboratorios ?? [])
+    .filter((l) => l?.id != null)
+    .map((l) => ({ id: l.id, nome: l.name ?? `Laboratorio ${l.id}` }))
+    .sort((a, b) => a.nome.localeCompare(b.nome));
 }
 
 /* Sessao expirada */
@@ -148,6 +144,18 @@ export function cadastrar({ name, email, password }) {
 /** POST /api/auth/login -> 200 { token, userId, name, email, role }. */
 export function login(email, password) {
   return requisitar('/auth/login', { metodo: 'POST', corpo: { email, password } });
+}
+
+/* Laboratorios */
+
+/** GET /api/labs -> [{ id, name }]. Qualquer usuario autenticado. */
+export function listarLaboratorios({ token } = {}) {
+  return requisitar('/labs', { token });
+}
+
+/** POST /api/labs -> 201 { id, name }. Exige perfil ADMIN. */
+export function criarLaboratorio({ token, name }) {
+  return requisitar('/labs', { metodo: 'POST', token, corpo: { name } });
 }
 
 /* Dispositivos */

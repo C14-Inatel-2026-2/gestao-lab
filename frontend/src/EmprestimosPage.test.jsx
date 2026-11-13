@@ -3,7 +3,8 @@ import userEvent from '@testing-library/user-event';
 import EmprestimosPage from './EmprestimosPage';
 import { useAuth } from './AuthContext';
 import {
-  aprovarEmprestimo, ApiError, listarDispositivos, listarEmprestimos, registrarDevolucao,
+  aprovarEmprestimo, ApiError, listarDispositivos, listarEmprestimos, listarLaboratorios,
+  registrarDevolucao,
 } from './api';
 
 /*
@@ -17,10 +18,13 @@ jest.mock('./api', () => ({
   ...jest.requireActual('./api'),
   listarEmprestimos: jest.fn(),
   listarDispositivos: jest.fn(),
+  listarLaboratorios: jest.fn(),
   aprovarEmprestimo: jest.fn(),
   rejeitarEmprestimo: jest.fn(),
   registrarDevolucao: jest.fn(),
 }));
+
+const LABORATORIOS = [{ id: 1, name: 'Laboratorio de IoT' }, { id: 2, name: 'Laboratorio de Robotica' }];
 
 const DISPOSITIVOS = [
   { id: 1, name: 'ESP32 DevKit v1', status: 'AVAILABLE', laboratoryId: 1, laboratoryName: 'IoT' },
@@ -37,6 +41,7 @@ function autenticarComo(role) {
 
 beforeEach(() => {
   listarDispositivos.mockResolvedValue(DISPOSITIVOS);
+  listarLaboratorios.mockResolvedValue(LABORATORIOS);
   listarEmprestimos.mockResolvedValue(EMPRESTIMOS);
 });
 

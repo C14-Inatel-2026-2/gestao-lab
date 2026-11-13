@@ -31,7 +31,8 @@ Emprestimos.
 | --- | --- | --- |
 | Login | `POST /api/auth/login` | publico |
 | Cadastro | `POST /api/auth/register` | publico (cria sempre `PARTICIPANT`) |
-| Inventario | `GET /api/devices?laboratoryId=&status=` | autenticado |
+| Inventario | `GET /api/devices?laboratoryId=&status=` e `GET /api/labs` | autenticado |
+| Inventario — cadastrar laboratorio | `POST /api/labs` | `ADMIN` |
 | Inventario — cadastrar dispositivo | `POST /api/devices` | `ADMIN` |
 | Inventario — alterar situacao | `PATCH /api/devices/{id}/status` | `ADMIN` |
 | Emprestimos — listar | `GET /api/loans` | autenticado (proprios; `ADMIN` ve todos) |
@@ -43,6 +44,17 @@ A validacao de senha da tela espelha o backend: minimo de 8 caracteres, uma
 maiuscula e um digito (maximo de 72). O token vale uma hora e as sessoes ficam
 em memoria no backend, entao qualquer `401` numa rota autenticada encerra a
 sessao e a tela de login avisa que ela expirou.
+
+### Ponto de partida
+
+O backend nao cria nenhum laboratorio na inicializacao, e todo dispositivo
+pertence a um laboratorio. Entao a ordem e: o administrador cadastra um
+laboratorio, depois um dispositivo nele, e so ai ha algo para emprestar.
+
+O primeiro administrador tambem nao existe sozinho: o backend o cria na primeira
+subida, pelas variaveis `INITIAL_ADMIN_*`. Contas criadas pela tela de cadastro
+sao sempre `PARTICIPANT`, e um administrador pode promover outras em
+`PATCH /api/users/{id}/promote`.
 
 ### Ciclo do emprestimo
 
@@ -60,9 +72,6 @@ como periodo invertido e dispositivo ja reservado no mesmo intervalo.
 
 ## Limitacoes conhecidas do contrato atual
 
-- **Nao existe `GET /api/labs`.** Os laboratorios dos filtros e dos formularios
-  sao derivados do `laboratoryId`/`laboratoryName` que cada dispositivo traz.
-  Quando o endpoint existir, trocar `useLaboratorios`, em `useDispositivos.js`.
 - **`GET /api/devices` nao tem busca por texto**, so `laboratoryId` e `status`.
   A busca da tela e aplicada no cliente, sobre o resultado da API.
 - **`LoanResponse` nao traz o nome do dispositivo nem do solicitante**, so os
@@ -78,17 +87,18 @@ npm test             # suíte completa
 npm run test:ci      # + cobertura e relatório JUnit para o Jenkins
 ```
 
-29 casos em 9 suítes, atendendo ao requisito de testes com e sem mock, com
+33 casos em 10 suítes, atendendo ao requisito de testes com e sem mock, com
 casos negativos cobrindo as recusas do backend:
 
 | Suíte | Casos | Tipo |
 | --- | --- | --- |
-| `api.test.js` | 6 | sem mock — funções puras: regras de senha, derivação de laboratórios, `ApiError`, `initials` |
+| `api.test.js` | 6 | sem mock — funções puras: regras de senha, opções de laboratório, `ApiError`, `initials` |
 | `AuthContext.test.jsx` | 2 | `fetch` global dublado — exercita `api.js` real: Bearer, corpo de erro e expiração em `401` |
 | `Area.test.jsx` | 4 | com mock — troca de abas e porta de entrada do `App` |
 | `LoginPage.senha.test.jsx` | 2 | com mock — validação antes de chamar a API |
 | `CadastroPage.test.jsx` | 2 | com mock — cadastro e conflito de email (409) |
-| `DispositivosPage.test.jsx` | 3 | com mock — listagem, falha da API e diferença entre perfis |
+| `DispositivosPage.test.jsx` | 4 | com mock — listagem, laboratório sem dispositivos, falha da API e diferença entre perfis |
+| `NovoLaboratorio.test.jsx` | 3 | com mock — `POST /api/labs`, nome em branco e acesso negado (403) |
 | `NovoDispositivo.test.jsx` | 2 | com mock — `POST /api/devices` e acesso negado (403) |
 | `EmprestimoForm.test.jsx` | 4 | com mock — `POST /api/loans`, filtro de dispositivos, período inválido e conflito de reserva |
 | `EmprestimosPage.test.jsx` | 4 | com mock — listagem, perfis e as ações de aprovar e devolver |
@@ -97,8 +107,21 @@ Os dubles de `api.js` usam `jest.requireActual`, então as constantes vêm do
 módulo real: se `DeviceStatus` mudar no backend, o teste não passa com o enum
 antigo.
 
+## Deploy
+
+A interface é servida por um container nginx que também encaminha `/api` para o
+backend, então front e API ficam na mesma origem e o backend não precisa de CORS.
+
+```bash
+docker compose -f ../compose.deploy.yaml up -d --build --wait
+```
+
+Interface em `http://localhost:8084`. Detalhes e a publicação no Render estão em
+[`docs/ci/frontend-deploy.md`](../docs/ci/frontend-deploy.md).
+
 ## CI
 
-Pipeline declarativo em [`Jenkinsfile`](Jenkinsfile): build, testes com relatório
-JUnit e cobertura, empacotamento e publicação. Visão geral do projeto, requisitos
-e CI do backend ficam no [README da raiz](../README.md).
+As etapas do frontend ficam no [`Jenkinsfile` da raiz](../Jenkinsfile), junto com
+as do backend: testes com relatório JUnit, cobertura com quality gate (50% linhas,
+40% branches), relatório HTML e build do `dist/`. Visão geral do projeto e
+requisitos ficam no [README da raiz](../README.md).

@@ -1,4 +1,4 @@
-import { ApiError, emailInvalido, initials, laboratoriosDe, senhaInvalida, STATUS } from './api';
+import { ApiError, emailInvalido, initials, opcoesDeLaboratorio, senhaInvalida } from './api';
 
 /* Testes unitarios SEM mock: funcoes puras, sem rede e sem dubles. */
 
@@ -17,26 +17,26 @@ describe('senhaInvalida (sem mock)', () => {
   });
 });
 
-describe('laboratoriosDe (sem mock)', () => {
-  it('deriva laboratorios unicos e ordenados da lista de dispositivos', () => {
-    // Arranjo: o backend nao expoe GET /api/labs, so laboratoryId/Name em cada device
-    const dispositivos = [
-      { id: 1, name: 'ESP32', laboratoryId: 2, laboratoryName: 'Redes', status: STATUS.AVAILABLE },
-      { id: 2, name: 'Sensor', laboratoryId: 1, laboratoryName: 'IoT', status: STATUS.BORROWED },
-      { id: 3, name: 'Servo', laboratoryId: 2, laboratoryName: 'Redes', status: STATUS.AVAILABLE },
+describe('opcoesDeLaboratorio (sem mock)', () => {
+  it('converte a resposta de GET /api/labs em opcoes ordenadas', () => {
+    // Arranjo: o backend devolve [{id, name}]; as telas usam {id, nome}
+    const resposta = [
+      { id: 2, name: 'Redes' },
+      { id: 1, name: 'IoT' },
     ];
 
     // Acao
-    const laboratorios = laboratoriosDe(dispositivos);
+    const opcoes = opcoesDeLaboratorio(resposta);
 
-    // Verificacao: sem repeticao e em ordem alfabetica
-    expect(laboratorios).toEqual([{ id: 1, nome: 'IoT' }, { id: 2, nome: 'Redes' }]);
+    // Verificacao: renomeado e em ordem alfabetica
+    expect(opcoes).toEqual([{ id: 1, nome: 'IoT' }, { id: 2, nome: 'Redes' }]);
   });
 
   // CASO NEGATIVO
-  it('devolve lista vazia para entrada ausente ou sem laboratorio', () => {
-    expect(laboratoriosDe(undefined)).toEqual([]);
-    expect(laboratoriosDe([{ id: 1, name: 'Sem lab' }])).toEqual([]);
+  it('devolve lista vazia para entrada ausente e ignora item sem id', () => {
+    expect(opcoesDeLaboratorio(undefined)).toEqual([]);
+    expect(opcoesDeLaboratorio([])).toEqual([]);
+    expect(opcoesDeLaboratorio([{ name: 'Sem id' }])).toEqual([]);
   });
 });
 

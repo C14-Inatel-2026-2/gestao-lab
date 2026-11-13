@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import App from './App';
 import Area from './Area';
 import { useAuth } from './AuthContext';
-import { listarDispositivos, listarEmprestimos } from './api';
+import { listarDispositivos, listarEmprestimos, listarLaboratorios } from './api';
 
 /* Testes unitarios COM mock: navegacao entre as abas e porta de entrada do App. */
 
@@ -12,6 +12,7 @@ jest.mock('./AuthContext', () => ({ useAuth: jest.fn() }));
 jest.mock('./api', () => ({
   ...jest.requireActual('./api'),
   listarDispositivos: jest.fn(),
+  listarLaboratorios: jest.fn(),
   listarEmprestimos: jest.fn(),
 }));
 
@@ -21,6 +22,7 @@ const DISPOSITIVOS = [
 
 beforeEach(() => {
   listarDispositivos.mockResolvedValue(DISPOSITIVOS);
+  listarLaboratorios.mockResolvedValue([{ id: 1, name: 'Laboratorio de IoT' }]);
   listarEmprestimos.mockResolvedValue([]);
   useAuth.mockReturnValue({
     user: { id: 1, name: 'Solange Ribeiro da Fonseca', role: 'PARTICIPANT' },

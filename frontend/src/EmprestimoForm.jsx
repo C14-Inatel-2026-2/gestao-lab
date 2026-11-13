@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { laboratoriosDe, solicitarEmprestimo, STATUS, STATUS_LABELS } from './api';
+import { solicitarEmprestimo, STATUS, STATUS_LABELS } from './api';
 
 /**
  * Solicitacao de emprestimo de dispositivo (POST /api/loans).
@@ -11,7 +11,7 @@ import { laboratoriosDe, solicitarEmprestimo, STATUS, STATUS_LABELS } from './ap
  * Dispositivos em manutencao tambem sao recusados pelo LoanService, entao
  * ficam fora do seletor.
  */
-export default function EmprestimoForm({ token, dispositivos, onSolicitado }) {
+export default function EmprestimoForm({ token, dispositivos, laboratorios, onSolicitado }) {
   const [laboratorioId, setLaboratorioId] = useState('');
   const [dispositivoId, setDispositivoId] = useState('');
   const [inicio, setInicio] = useState('');
@@ -19,8 +19,6 @@ export default function EmprestimoForm({ token, dispositivos, onSolicitado }) {
   const [erro, setErro] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [confirmacao, setConfirmacao] = useState('');
-
-  const laboratorios = useMemo(() => laboratoriosDe(dispositivos), [dispositivos]);
 
   const disponiveis = useMemo(
     () => (dispositivos ?? []).filter(
@@ -74,7 +72,7 @@ export default function EmprestimoForm({ token, dispositivos, onSolicitado }) {
 
       {laboratorios.length === 0 ? (
         <p className="muted">
-          Nenhum dispositivo cadastrado ainda, entao nao ha o que emprestar.
+          Nenhum laboratorio cadastrado ainda, entao nao ha o que emprestar.
         </p>
       ) : (
         <>

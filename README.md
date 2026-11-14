@@ -132,3 +132,7 @@ O desenvolvimento do projeto é organizado utilizando Scrum. O Jira é utilizado
 
 - [Usuários e autenticação](backend/docs/domains/users/api.md)
 - [Laboratórios](backend/docs/domains/labs/api.md)
+
+## Contribuições individuais
+
+- [Igor Nogueira Olivio — atividades, aprendizado e uso de IA](docs/entrega/igor-olivio.md)

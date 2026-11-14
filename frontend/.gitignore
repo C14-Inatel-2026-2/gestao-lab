@@ -1,0 +1,16 @@
+node_modules
+dist
+coverage
+.env
+
+# Configuracao de editor
+.idea
+.vscode
+
+# Saidas do pipeline
+reports
+*.tar.gz
+deploy
+
+# Build avulso para abrir sem servidor
+ABRIR-LOGIN.html

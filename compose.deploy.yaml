@@ -5,6 +5,13 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:sqlite:/app/data/gestaolab.db
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      # Administrador inicial: desligado por padrao e sem senha padrao. Definir
+      # no ambiente do host (ou num .env na raiz) antes da primeira subida, e
+      # desligar depois de criar a conta. Ver docs/ci/frontend-deploy.md.
+      INITIAL_ADMIN_ENABLED: ${INITIAL_ADMIN_ENABLED:-false}
+      INITIAL_ADMIN_NAME: ${INITIAL_ADMIN_NAME:-}
+      INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL:-}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:-}
     volumes:
       - sqlite_data:/app/data
     ports:
@@ -15,6 +22,26 @@ services:
       timeout: 5s
       retries: 6
       start_period: 40s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    environment:
+      # Nome do servico na rede do Compose: o navegador nunca usa esta URL,
+      # quem a resolve e o nginx dentro do container.
+      BACKEND_URL: http://backend:8080
+    ports:
+      - "127.0.0.1:8084:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "--output", "/dev/null", "http://localhost/"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
     restart: unless-stopped
 
 volumes:

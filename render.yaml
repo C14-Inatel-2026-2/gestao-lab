@@ -1,0 +1,55 @@
+# Blueprint do Render: descreve os dois servicos em codigo, em vez de depender
+# de configuracao manual no painel.
+#
+# Uso: no Render, New > Blueprint, aponte para este repositorio. O Render le
+# este arquivo e cria os servicos. Depois preencha, em cada servico, as
+# variaveis marcadas com `sync: false`, que nao ficam versionadas.
+#
+# O deploy automatico esta desligado de proposito: a publicacao e disparada
+# pelos deploy hooks, pelo pipeline do Jenkins, apos os testes passarem.
+# Ver docs/ci/frontend-deploy.md.
+
+services:
+  - type: web
+    name: gestao-lab-backend
+    runtime: docker
+    plan: free
+    branch: feat/frontend-login
+    autoDeploy: false
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /actuator/health
+    envVars:
+      # O Dockerfile do backend declara EXPOSE 10000, e o Render roteia para a
+      # porta exposta. O Spring ouve 8080 por padrao, entao a porta precisa ser
+      # alinhada aqui, senao o servico sobe e o Render nao o alcanca.
+      - key: SERVER_PORT
+        value: "10000"
+      - key: SPRING_DATASOURCE_URL
+        value: "jdbc:sqlite:/app/data/gestaolab.db"
+      - key: SPRING_JPA_HIBERNATE_DDL_AUTO
+        value: "update"
+      # Administrador inicial. Ligue apenas na primeira publicacao, preencha as
+      # tres variaveis abaixo no painel e depois volte para false.
+      - key: INITIAL_ADMIN_ENABLED
+        value: "false"
+      - key: INITIAL_ADMIN_NAME
+        sync: false
+      - key: INITIAL_ADMIN_EMAIL
+        sync: false
+      - key: INITIAL_ADMIN_PASSWORD
+        sync: false
+
+  - type: web
+    name: gestao-lab-frontend
+    runtime: docker
+    plan: free
+    branch: feat/frontend-login
+    autoDeploy: false
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    envVars:
+      # URL publica do servico do backend, sem barra no final. Preencher no
+      # painel, por exemplo https://gestao-lab-backend.onrender.com
+      - key: BACKEND_URL
+        sync: false

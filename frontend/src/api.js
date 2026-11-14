@@ -1,0 +1,234 @@
+/**
+ * Cliente HTTP do backend e constantes compartilhadas.
+ *
+ * Nao existe mais modo de demonstracao: tudo aqui fala com a API real.
+ * Em desenvolvimento o proxy do Vite encaminha /api para o backend, o que
+ * mantem as chamadas na mesma origem e dispensa CORS no servidor.
+ */
+
+/** Para servir a interface em outra origem, defina window.__GESTAO_LAB_API__. */
+const API_BASE = globalThis.__GESTAO_LAB_API__ ?? '/api';
+
+/** Perfis de acesso, espelhando o enum Role de br.inatel.users. */
+export const ROLE_LABELS = { ADMIN: 'Administrador', PARTICIPANT: 'Participante' };
+
+/** Situacao do equipamento, espelhando o enum DeviceStatus de br.inatel.devices. */
+export const STATUS = {
+  AVAILABLE: 'AVAILABLE',
+  BORROWED: 'BORROWED',
+  MAINTENANCE: 'MAINTENANCE',
+};
+
+/** Rotulo exibido para cada situacao, derivado de STATUS - fonte unica. */
+export const STATUS_LABELS = {
+  [STATUS.AVAILABLE]: 'Disponivel',
+  [STATUS.BORROWED]: 'Emprestado',
+  [STATUS.MAINTENANCE]: 'Em manutencao',
+};
+
+/** Ciclo de vida do emprestimo, espelhando o enum LoanStatus de br.inatel.loans. */
+export const LOAN_STATUS = {
+  REQUESTED: 'REQUESTED',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  RETURNED: 'RETURNED',
+};
+
+/** Rotulo exibido para cada etapa, derivado de LOAN_STATUS - fonte unica. */
+export const LOAN_STATUS_LABELS = {
+  [LOAN_STATUS.REQUESTED]: 'Solicitado',
+  [LOAN_STATUS.APPROVED]: 'Aprovado',
+  [LOAN_STATUS.REJECTED]: 'Rejeitado',
+  [LOAN_STATUS.RETURNED]: 'Devolvido',
+};
+
+/** Sessao inteira numa chave: o backend devolve token e usuario no mesmo login. */
+export const STORAGE_KEY = 'gestao-lab:sessao';
+
+/** Regras de senha, espelhando UserService.isPasswordValid e RegisterRequest. */
+export const SENHA_MIN = 8;
+export const SENHA_MAX = 72;
+
+export class ApiError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
+/** "Solange Ribeiro" -> "SR" */
+export function initials(name) {
+  if (!name) return '?';
+  const p = String(name).trim().split(/\s+/);
+  return (p.length === 1 ? p[0].slice(0, 2) : p[0][0] + p[p.length - 1][0]).toUpperCase();
+}
+
+/** Mensagem de erro do email, ou string vazia se estiver valido. */
+export function emailInvalido(email) {
+  const valor = String(email ?? '').trim();
+  if (!valor) return 'Informe o email institucional.';
+  if (!/^\S+@\S+\.\S+$/.test(valor)) return 'Email invalido.';
+  return '';
+}
+
+/**
+ * Mensagem de erro da senha, ou string vazia se estiver valida.
+ * As regras sao as mesmas do backend: recusar aqui evita um 400 previsivel.
+ */
+export function senhaInvalida(senha) {
+  const valor = String(senha ?? '');
+  if (!valor) return 'Informe a senha.';
+  if (valor.length < SENHA_MIN) return `A senha deve ter no minimo ${SENHA_MIN} caracteres.`;
+  if (valor.length > SENHA_MAX) return `A senha deve ter no maximo ${SENHA_MAX} caracteres.`;
+  if (!/[A-Z]/.test(valor)) return 'A senha deve ter ao menos uma letra maiuscula.';
+  if (!/\d/.test(valor)) return 'A senha deve ter ao menos um digito.';
+  return '';
+}
+
+/**
+ * Converte a resposta de GET /api/labs nas opcoes usadas pelos seletores.
+ *
+ * O backend devolve [{id, name}]; as telas trabalham com {id, nome}. A ordem
+ * alfabetica e aplicada aqui para nao depender da ordem do banco.
+ */
+export function opcoesDeLaboratorio(laboratorios) {
+  return (laboratorios ?? [])
+    .filter((l) => l?.id != null)
+    .map((l) => ({ id: l.id, nome: l.name ?? `Laboratorio ${l.id}` }))
+    .sort((a, b) => a.nome.localeCompare(b.nome));
+}
+
+/* Sessao expirada */
+
+let aoExpirar = () => {};
+
+/** O AuthContext registra aqui o encerramento da sessao em qualquer 401. */
+export function registrarExpiracao(callback) {
+  aoExpirar = typeof callback === 'function' ? callback : () => {};
+}
+
+/**
+ * Unico ponto de fetch: injeta JSON e o Bearer, e traduz o corpo de erro do
+ * Spring em ApiError. Todos os handlers do backend respondem {"message": "..."}.
+ */
+async function requisitar(caminho, { metodo = 'GET', corpo, token } = {}) {
+  const resposta = await fetch(`${API_BASE}${caminho}`, {
+    method: metodo,
+    headers: {
+      Accept: 'application/json',
+      ...(corpo === undefined ? {} : { 'Content-Type': 'application/json' }),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    ...(corpo === undefined ? {} : { body: JSON.stringify(corpo) }),
+  });
+
+  const dados = await resposta.json().catch(() => null);
+
+  if (!resposta.ok) {
+    // Token ausente, invalido ou expirado - inclusive apos reinicio do backend,
+    // porque as sessoes do TokenService ficam em memoria.
+    if (resposta.status === 401 && token) aoExpirar();
+    throw new ApiError(dados?.message ?? `Falha na requisicao (HTTP ${resposta.status})`, resposta.status);
+  }
+  return dados;
+}
+
+/* Autenticacao - rotas publicas */
+
+/** POST /api/auth/register -> 201 { userId, name, email, role }. Nao faz login. */
+export function cadastrar({ name, email, password }) {
+  return requisitar('/auth/register', { metodo: 'POST', corpo: { name, email, password } });
+}
+
+/** POST /api/auth/login -> 200 { token, userId, name, email, role }. */
+export function login(email, password) {
+  return requisitar('/auth/login', { metodo: 'POST', corpo: { email, password } });
+}
+
+/* Laboratorios */
+
+/** GET /api/labs -> [{ id, name }]. Qualquer usuario autenticado. */
+export function listarLaboratorios({ token } = {}) {
+  return requisitar('/labs', { token });
+}
+
+/** POST /api/labs -> 201 { id, name }. Exige perfil ADMIN. */
+export function criarLaboratorio({ token, name }) {
+  return requisitar('/labs', { metodo: 'POST', token, corpo: { name } });
+}
+
+/* Dispositivos */
+
+/** GET /api/devices?laboratoryId=&status= -> lista de DeviceResponse. */
+export function listarDispositivos({ token, laboratoryId = '', status = '' } = {}) {
+  const busca = new URLSearchParams();
+  if (laboratoryId) busca.set('laboratoryId', laboratoryId);
+  if (status) busca.set('status', status);
+  const query = busca.toString();
+  return requisitar(`/devices${query ? `?${query}` : ''}`, { token });
+}
+
+/** POST /api/devices -> 201. Exige perfil ADMIN. */
+export function criarDispositivo({ token, name, description, laboratoryId }) {
+  return requisitar('/devices', {
+    metodo: 'POST',
+    token,
+    corpo: { name, description: description || null, laboratoryId: Number(laboratoryId) },
+  });
+}
+
+/** PATCH /api/devices/{id}/status -> 200. Exige perfil ADMIN. */
+export function alterarStatus({ token, id, status }) {
+  return requisitar(`/devices/${id}/status`, { metodo: 'PATCH', token, corpo: { status } });
+}
+
+/* Emprestimos */
+
+/**
+ * POST /api/loans -> 201 LoanResponse com status REQUESTED.
+ *
+ * O solicitante nao vai no corpo: o backend usa o usuario autenticado. O
+ * dispositivo precisa pertencer ao laboratorio informado, nao estar em
+ * manutencao e nao ter emprestimo aprovado no mesmo periodo - o LoanService
+ * recusa os tres casos com 400.
+ */
+export function solicitarEmprestimo({ token, laboratoryId, deviceId, startDateTime, endDateTime }) {
+  return requisitar('/loans', {
+    metodo: 'POST',
+    token,
+    corpo: {
+      laboratoryId: Number(laboratoryId),
+      deviceId: Number(deviceId),
+      startDateTime,
+      endDateTime,
+    },
+  });
+}
+
+/** GET /api/loans -> todos os emprestimos para ADMIN, apenas os proprios para PARTICIPANT. */
+export function listarEmprestimos({ token } = {}) {
+  return requisitar('/loans', { token });
+}
+
+/** PATCH /api/loans/{id}/approve -> 200. Exige ADMIN e status REQUESTED. */
+export function aprovarEmprestimo({ token, id }) {
+  return requisitar(`/loans/${id}/approve`, { metodo: 'PATCH', token });
+}
+
+/** PATCH /api/loans/{id}/reject -> 200. Exige ADMIN e status REQUESTED. */
+export function rejeitarEmprestimo({ token, id }) {
+  return requisitar(`/loans/${id}/reject`, { metodo: 'PATCH', token });
+}
+
+/** PATCH /api/loans/{id}/return -> 200. Exige ADMIN e status APPROVED. */
+export function registrarDevolucao({ token, id }) {
+  return requisitar(`/loans/${id}/return`, { metodo: 'PATCH', token });
+}
+
+/* Usuarios */
+
+/** PATCH /api/users/{id}/promote -> 200. Exige perfil ADMIN. */
+export function promoverUsuario({ token, id }) {
+  return requisitar(`/users/${id}/promote`, { metodo: 'PATCH', token });
+}

@@ -116,8 +116,12 @@ backend, então front e API ficam na mesma origem e o backend não precisa de CO
 docker compose -f ../compose.deploy.yaml up -d --build --wait
 ```
 
-Interface em `http://localhost:8084`. Detalhes e a publicação no Render estão em
-[`docs/ci/frontend-deploy.md`](../docs/ci/frontend-deploy.md).
+Interface em `http://localhost:8084`.
+
+O backend não cria administrador sozinho, e sem administrador não há laboratório
+nem dispositivo. Antes da primeira subida, copie o `.env.example` da raiz para
+`.env` e defina as variáveis `INITIAL_ADMIN_*`. Isso, e a publicação no Render,
+estão em [`docs/ci/frontend-deploy.md`](../docs/ci/frontend-deploy.md).
 
 ## CI
 

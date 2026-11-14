@@ -40,8 +40,43 @@ Para conferir que o proxy está de pé:
 curl --fail http://localhost:8084/actuator/health
 ```
 
-Para criar o primeiro administrador, repasse as variáveis do
-[documentação de usuários](../../backend/docs/domains/users/api.md) ao serviço `backend` em `environment`.
+## Administrador inicial
+
+Sem administrador não há como cadastrar laboratório nem dispositivo, e o sistema
+trava no primeiro passo. O cadastro público cria sempre `PARTICIPANT`.
+
+A conta administrativa é **opcional** e só é criada quando
+`INITIAL_ADMIN_ENABLED=true`. **Não existe senha padrão.** Se já existir qualquer
+`ADMIN` no banco, nada é criado nem alterado — inclusive nos reinícios.
+
+Nome, e-mail e senha seguem as mesmas validações do cadastro: e-mail em formato
+válido e senha de 8 a 72 caracteres, com ao menos uma letra maiúscula e um
+dígito. Dados inválidos, ou e-mail já usado por outro usuário, **interrompem a
+inicialização** do backend. A senha é gravada com BCrypt.
+
+O `compose.deploy.yaml` repassa as quatro variáveis ao container do backend, com
+`INITIAL_ADMIN_ENABLED` em `false` por padrão. Defini-las apenas no host não
+basta: elas precisam chegar ao ambiente do container, e é isso que o `compose`
+faz. Copie o [`.env.example`](../../.env.example) da raiz para `.env` e preencha:
+
+```bash
+cp .env.example .env
+```
+
+```text
+INITIAL_ADMIN_ENABLED=true
+INITIAL_ADMIN_NAME=Administrador
+INITIAL_ADMIN_EMAIL=admin@inatel.br
+INITIAL_ADMIN_PASSWORD=<senha definida pelo responsável>
+```
+
+Suba, faça login com essa conta e, **depois de confirmar que ela existe**,
+devolva `INITIAL_ADMIN_ENABLED` para `false` e apague as credenciais do `.env`.
+O `.env` está no `.gitignore`; nunca versione a senha.
+
+Para rodar o backend fora do Compose, as mesmas variáveis valem no ambiente do
+processo. Detalhes em
+[usuários e autenticação](../../backend/docs/domains/users/api.md).
 
 ## Publicar no Render
 
@@ -65,6 +100,27 @@ O backend já tem serviço e deploy hook. O frontend precisa de um segundo servi
 O ID precisa ser exatamente esse, pois é o que o `Jenkinsfile` procura.
 
 5. Rodar o job com o parâmetro **`PUBLICAR_FRONTEND`** marcado.
+
+### Administrador inicial no Render
+
+O `.env` da raiz vale só para o Compose local. **No Render as variáveis vão no
+serviço do backend**, em *Environment*, não no serviço do frontend:
+
+| Variável | Valor |
+| --- | --- |
+| `INITIAL_ADMIN_ENABLED` | `true` na primeira publicação, `false` depois |
+| `INITIAL_ADMIN_NAME` | nome do administrador |
+| `INITIAL_ADMIN_EMAIL` | e-mail do administrador |
+| `INITIAL_ADMIN_PASSWORD` | senha com 8 a 72 caracteres, uma maiúscula e um dígito |
+
+Publique uma vez com `true`, confirme que consegue entrar com essa conta e então
+troque para `false` e remova as outras três. Enquanto `true` ficar com dados
+inválidos, o serviço **não sobe**: o backend interrompe a inicialização de
+propósito, em vez de criar um administrador inconsistente.
+
+Atenção ao banco: no Render o SQLite vive no disco do serviço. Se o serviço for
+recriado sem disco persistente, o banco é zerado e o administrador precisa ser
+criado de novo.
 
 Enquanto o serviço e a credencial não existirem, deixe `PUBLICAR_FRONTEND`
 desmarcado: o stage é pulado e o resto do pipeline segue normalmente.

@@ -16,6 +16,7 @@ Projeto acadêmico - Engenharia de Software (C14)
 - [Documentação do backend](backend/docs/README.md)
 - [User stories](#user-stories)
 - [Dinâmica de desenvolvimento](#dinâmica-de-desenvolvimento)
+- [Uso de IA](#uso-de-ia)
 - [Contribuições individuais](#contribuições-individuais)
 
 ## Autores
@@ -98,11 +99,11 @@ Nas ações finais, o Jenkins arquiva o relatório JaCoCo e, em caso de sucesso,
 
 | Pipeline Jenkins | Resultado dos testes |
 | :---: | :---: |
-| [![Pipeline](backend/docs/assets/ci/jenkins-pipeline.jpeg)](backend/docs/assets/ci/jenkins-pipeline.jpeg) | [![Testes](backend/docs/assets/ci/jenkins-tests.jpeg)](backend/docs/assets/ci/jenkins-tests.jpeg) |
+| [![Pipeline](docs/assets/ci/jenkins-pipeline.jpeg)](docs/assets/ci/jenkins-pipeline.jpeg) | [![Testes](docs/assets/ci/jenkins-tests.jpeg)](docs/assets/ci/jenkins-tests.jpeg) |
 
 | Relatório JaCoCo | Build remota — Render |
 | :---: | :---: |
-| [![JaCoCo](backend/docs/assets/ci/jacoco-coverage.jpeg)](backend/docs/assets/ci/jacoco-coverage.jpeg) | [![Render](backend/docs/assets/ci/build-remota.jpeg)](backend/docs/assets/ci/build-remota.jpeg) |
+| [![JaCoCo](docs/assets/ci/image.png)](docs/assets/ci/image.png) | [![Render](docs/assets/ci/build-remota.png)](docs/assets/ci/build-remota.png) |
 
 ## Requisitos Funcionais
 
@@ -153,6 +154,10 @@ Os nove itens representam o escopo registrado da sprint, sem afirmar uma taxa de
 
 | Causa | O que foi feito | Autor |
 |---|---|---|
+| Mensagem de credenciais inválidas repetida em `UserService.validateCredentials`. | Reutilizado o construtor sem argumentos de `InvalidCredentialsException`, preservando a mensagem existente. | @LucasYnoguti |
+| Regra de expiração de sessões duplicada em `TokenService.issue` e `resolve`. | Centralizada em `Session.isExpiredAt(Instant)`, preservando a expiração no instante limite. | @LucasYnoguti |
+| Validação de campo obrigatório repetida cinco vezes em `LoanService.create`. | Extraída para o método privado `requirePresent`, preservando as mensagens e a ordem das validações. | @Miwamma |
+| Consulta de sobreposição em `LoanRepository` com nome de 74 caracteres e parâmetros em ordem invertida (`end` antes de `start`). | Renomeada para `existsOverlapping`, com `@Query` explícita e parâmetros na ordem natural, preservando a condição. | @Miwamma |
 
 ## Documentação da API
 
@@ -187,6 +192,18 @@ Houve poucos conflitos de código devido à separação do backend por domínios
 ### Fluxo de branches, commits e code review
 
 As alterações eram desenvolvidas em branches por funcionalidade ou correção e integradas à `main` por pull requests com revisão obrigatória. Adotamos Conventional Commits, embora sem aplicação uniforme. As revisões verificavam regras de negócio, testes e compatibilidade com os demais módulos.
+
+## Uso de IA
+
+O grupo usou IA generativa como apoio ao desenvolvimento, sempre em sessões individuais. A ferramenta propõe; o integrante decide, executa os testes na própria máquina, faz os commits e abre os pull requests. Toda alteração passou por revisão antes de entrar na `main`.
+
+O registro de cada integrante traz os modelos utilizados, para quê foram usados, exemplos de prompts com o destino das respostas e o que não foi feito por IA:
+
+| Integrante | Ferramentas | Registro |
+|---|---|---|
+| Igor Nogueira Olivio | ChatGPT | [Uso de inteligência artificial](docs/entrega/igor-olivio.md#uso-de-inteligência-artificial) |
+| Lucas Nolasco Ynoguti | Ver registro | [Uso de inteligência artificial](docs/entrega/lucas-ynoguti.md#uso-de-inteligência-artificial) |
+| Mauro Iwama | Claude e ChatGPT | [Uso de inteligência artificial](docs/entrega/mauro-iwama.md#uso-de-inteligência-artificial) |
 
 ## Contribuições individuais
 

@@ -17,4 +17,5 @@ Este diretório reúne os contratos e guias de manutenção do Gestão de Labora
 
 - [Visão de arquitetura](architecture/overview.md)
 - [Integração contínua e deploy](operations/ci/jenkins-local-render.md)
+- [Agente Jenkins com Java 21, Node.js e npm](operations/ci/jenkins-agente.md)
 - [Registro de validação do Jenkins](operations/ci/jenkins-validacao-igor.md)

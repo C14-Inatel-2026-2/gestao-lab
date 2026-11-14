@@ -41,6 +41,14 @@ docker exec gestao-lab-jenkins \
 
 Conclua o assistente de configuração e crie o usuário administrador. Em **Manage Jenkins > Nodes > Built-In Node > Configure**, defina um executor para o ambiente local.
 
+## 3. Usar um agente dedicado
+
+Para executar builds em um container separado com Java 21, Node.js e npm, siga o
+[guia do agente Jenkins](jenkins-agente.md). Como o exemplo acima publica o
+controlador na porta `8081`, use `http://host.docker.internal:8081/` como URL de
+conexão do agente no Docker Desktop. O guia também explica a seleção do nó por
+rótulo e os plugins de publicação de relatórios instalados no controlador.
+
 ## 4. Cadastrar a credencial no Jenkins
 
 Em **Manage Jenkins > Credentials > System > Global credentials > Add Credentials**, crie:

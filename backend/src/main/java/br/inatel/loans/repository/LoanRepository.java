@@ -2,7 +2,9 @@ package br.inatel.loans.repository;
 
 import br.inatel.loans.model.Loan;
 import br.inatel.loans.model.LoanStatus;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -24,6 +26,11 @@ public interface LoanRepository extends Repository<Loan, Long> {
      * [start, end): it starts before {@code end} and ends after {@code start}.
      * Periods that only touch (one ends exactly when the other starts) do not overlap.
      */
-    boolean existsByDeviceIdAndStatusAndStartDateTimeLessThanAndEndDateTimeGreaterThan(
-            Long deviceId, LoanStatus status, LocalDateTime end, LocalDateTime start);
+    @Query("select count(l) > 0 from Loan l "
+            + "where l.device.id = :deviceId and l.status = :status "
+            + "and l.startDateTime < :end and l.endDateTime > :start")
+    boolean existsOverlapping(@Param("deviceId") Long deviceId,
+                              @Param("status") LoanStatus status,
+                              @Param("start") LocalDateTime start,
+                              @Param("end") LocalDateTime end);
 }

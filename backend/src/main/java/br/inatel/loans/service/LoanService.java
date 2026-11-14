@@ -123,8 +123,7 @@ public class LoanService {
         if (device.getStatus() == DeviceStatus.MAINTENANCE) {
             throw new LoanConflictException("Device is under maintenance");
         }
-        if (repository.existsByDeviceIdAndStatusAndStartDateTimeLessThanAndEndDateTimeGreaterThan(
-                device.getId(), LoanStatus.APPROVED, end, start)) {
+        if (repository.existsOverlapping(device.getId(), LoanStatus.APPROVED, start, end)) {
             throw new LoanConflictException("Device is already booked for this period");
         }
     }

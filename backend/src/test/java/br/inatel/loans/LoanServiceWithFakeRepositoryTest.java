@@ -52,8 +52,8 @@ class LoanServiceWithFakeRepositoryTest {
         }
 
         @Override
-        public boolean existsByDeviceIdAndStatusAndStartDateTimeLessThanAndEndDateTimeGreaterThan(
-                Long deviceId, LoanStatus status, LocalDateTime end, LocalDateTime start) {
+        public boolean existsOverlapping(
+                Long deviceId, LoanStatus status, LocalDateTime start, LocalDateTime end) {
             return false;
         }
     }

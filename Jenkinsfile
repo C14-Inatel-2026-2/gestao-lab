@@ -18,7 +18,11 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
+                script {
+                    def scmVars = checkout scm
+                    env.GIT_BRANCH = scmVars.GIT_BRANCH
+                    echo "Branch do build: ${env.GIT_BRANCH}"
+                }
             }
         }
 

@@ -11,11 +11,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
@@ -29,6 +31,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -88,9 +91,23 @@ class LaboratoryHttpTest {
     }
 
     @ParameterizedTest
+    @CsvSource({"GET, abc", "PUT, abc", "DELETE, abc", "GET, 9223372036854775808"})
+    @WithMockUser(roles = "ADMIN")
+    void shouldRejectInvalidIdWithSafeMessage(String method, String id) throws Exception {
+        mvc.perform(request(HttpMethod.valueOf(method), "/api/labs/{id}", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Lab Software\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$.message").value("Invalid value for parameter 'id'"));
+    }
+
+    @ParameterizedTest
     @ValueSource(strings = {"/api/labs", "/api/labs/1"})
     void shouldRequireAuthentication(String path) throws Exception {
-        mvc.perform(get(path)).andExpect(status().isUnauthorized());
+        mvc.perform(get(path))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Authentication required"));
     }
 
     @Test
@@ -116,13 +133,24 @@ class LaboratoryHttpTest {
 
     @ParameterizedTest
     @ValueSource(strings = {
-            "{}", "{\"name\":null}", "{\"name\":\"\"}", "{\"name\":\"   \"}", "{\"name\":", "null", ""
+            "{}", "{\"name\":null}", "{\"name\":\"\"}", "{\"name\":\"   \"}"
     })
     @WithMockUser(roles = "ADMIN")
     void shouldRejectInvalidCreateRequests(String body) throws Exception {
         mvc.perform(post("/api/labs").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").isNotEmpty());
+                .andExpect(jsonPath("$.message").value("Laboratory name is required"));
+
+        assertThat(repository.count()).isZero();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"{\"name\":", "null", "", "[]"})
+    @WithMockUser(roles = "ADMIN")
+    void shouldRejectMalformedCreateRequests(String body) throws Exception {
+        mvc.perform(post("/api/labs").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Malformed request"));
 
         assertThat(repository.count()).isZero();
     }
@@ -133,7 +161,8 @@ class LaboratoryHttpTest {
         mvc.perform(post("/api/labs")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Lab Software\"}"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("Access denied"));
 
         assertThat(repository.count()).isZero();
     }
@@ -191,7 +220,8 @@ class LaboratoryHttpTest {
         mvc.perform(put("/api/labs/{id}", -1L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Nome atualizado\"}"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Laboratory not found"));
 
         assertThat(repository.count()).isZero();
     }
@@ -283,7 +313,8 @@ class LaboratoryHttpTest {
     @WithMockUser(roles = "ADMIN")
     void shouldReturnNotFoundWhenDeletingUnknownLaboratory() throws Exception {
         mvc.perform(delete("/api/labs/{id}", -1L))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Laboratory not found"));
     }
 
     @Test

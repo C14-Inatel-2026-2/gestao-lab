@@ -39,6 +39,26 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         AuthHttpTest.ProtectedEndpoints.class})
 class AuthHttpTest {
     @Test
+    void unexpectedFailureDoesNotExposeInternalDetails() throws Exception {
+        when(repository.findByEmail("failure@inatel.br"))
+                .thenThrow(new IllegalStateException("private database details"));
+        mvc.perform(post("/api/auth/login").contentType("application/json")
+                        .content("{\"email\":\"failure@inatel.br\",\"password\":\"Senha123\"}"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().json("{\"message\":\"Internal server error\"}", true));
+    }
+
+    @Test
+    void invalidServiceArgumentsUseSafeValidationMessage() throws Exception {
+        when(repository.findByEmail("failure@inatel.br"))
+                .thenThrow(new IllegalArgumentException("private validation details"));
+        mvc.perform(post("/api/auth/register").contentType("application/json")
+                        .content("{\"name\":\"User\",\"email\":\"failure@inatel.br\",\"password\":\"Senha123\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().json("{\"message\":\"Invalid registration data\"}", true));
+    }
+
+    @Test
     void invalidUserIdentifierReturnsStandardError() throws Exception {
         String token = login(Role.ADMIN);
         mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders

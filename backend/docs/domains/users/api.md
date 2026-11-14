@@ -15,7 +15,7 @@ Os erros usam `{ "message": "..." }`. Mensagens do domínio:
 
 | Situação | Status | Mensagem |
 | --- | --- | --- |
-| Cadastro inválido (validação do DTO) | 400 | `Invalid registration data` |
+| Cadastro inválido (validação do DTO ou argumentos do serviço) | 400 | `Invalid registration data` |
 | JSON malformado ou corpo ausente | 400 | `Malformed request` |
 | Identificador não numérico ou fora do intervalo de Long | 400 | `Invalid user id` |
 | Credenciais inválidas | 401 | `Invalid email or password` |
@@ -24,6 +24,13 @@ Os erros usam `{ "message": "..." }`. Mensagens do domínio:
 | Usuário inexistente | 404 | `User not found` |
 | E-mail duplicado | 409 | `Email already registered` |
 | Conflito de persistência | 409 | `Registration conflicts with existing data` |
+| Falha inesperada | 500 | `Internal server error` |
+
+O handler específico de usuários atende cadastro, login e promoção. Falhas
+inesperadas são registradas no servidor; a resposta não expõe detalhes da exceção.
+Erros HTTP de protocolo preservam seu status e headers e usam `Invalid request`.
+Credenciais inválidas continuam retornando a mesma mensagem para e-mail inexistente
+e senha incorreta. Erros dos demais domínios não são alterados por esse handler.
 
 ## POST /api/auth/register
 

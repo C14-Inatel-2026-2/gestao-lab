@@ -80,7 +80,26 @@ processo. Detalhes em
 
 ## Publicar no Render
 
-O backend já tem serviço e deploy hook. O frontend precisa de um segundo serviço:
+Há dois caminhos. O [`render.yaml`](../../render.yaml) na raiz descreve os dois
+serviços em código: no Render, **New > Blueprint**, apontando para este
+repositório, cria ambos de uma vez. Depois disso, preencha no painel as
+variáveis marcadas como `sync: false` — elas não ficam versionadas.
+
+O blueprint também resolve um detalhe fácil de passar batido: o
+`backend/Dockerfile` declara `EXPOSE 10000` e o Render roteia para a porta
+exposta, mas o Spring ouve 8080 por padrão. O blueprint define
+`SERVER_PORT=10000` para alinhar os dois. Sem isso o serviço do backend sobe e
+o Render não o alcança.
+
+**Atenção ao banco:** o plano gratuito do Render não tem disco persistente.
+O arquivo SQLite vive no sistema de arquivos efêmero do container, então cada
+publicação zera os dados, incluindo o administrador. Para o trabalho da
+disciplina isso pode bastar, desde que o grupo saiba. Para preservar os dados é
+preciso um plano com disco, montado em `/app/data`.
+
+### Caminho manual, serviço por serviço
+
+Se preferir criar pelo painel, o frontend precisa de:
 
 1. No Render, criar um serviço do tipo **Web Service** com origem neste
    repositório, **Root Directory** `frontend` e runtime **Docker**.

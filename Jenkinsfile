@@ -60,7 +60,7 @@ pipeline {
 
         stage('Disparar deploy no Render') {
             when {
-                branch 'main'
+                environment name: 'GIT_BRANCH', value: 'origin/main'
             }
             steps {
                 withCredentials([

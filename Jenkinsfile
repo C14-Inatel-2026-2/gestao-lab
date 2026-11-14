@@ -18,7 +18,14 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
+                script {
+                    // skipDefaultCheckout() desliga o checkout automatico, que e quem
+                    // preenche GIT_BRANCH. Sem guardar o retorno aqui, a variavel fica
+                    // vazia e o stage de deploy e pulado pelo "when" em toda execucao.
+                    def scmVars = checkout scm
+                    env.GIT_BRANCH = scmVars.GIT_BRANCH
+                    echo "Branch do build: ${env.GIT_BRANCH}"
+                }
             }
         }
 

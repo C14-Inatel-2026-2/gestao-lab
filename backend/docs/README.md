@@ -10,6 +10,7 @@ Este diretório reúne os contratos e guias de manutenção do Gestão de Labora
 ## Domínios
 
 - [Usuários, autenticação e autorização](domains/users/api.md)
+- [Dispositivos](domains/devices/api.md)
 
 ## Arquitetura e operação
 

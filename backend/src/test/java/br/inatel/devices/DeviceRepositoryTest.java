@@ -5,12 +5,19 @@ import br.inatel.devices.model.DeviceStatus;
 import br.inatel.devices.repository.DeviceRepository;
 import br.inatel.labs.model.Laboratory;
 import br.inatel.labs.repository.LaboratoryRepository;
+import br.inatel.loans.model.Loan;
+import br.inatel.loans.model.LoanStatus;
+import br.inatel.loans.repository.LoanRepository;
+import br.inatel.users.model.Role;
+import br.inatel.users.model.User;
+import br.inatel.users.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -28,6 +35,12 @@ class DeviceRepositoryTest {
 
     @Autowired
     private LaboratoryRepository laboratoryRepository;
+
+    @Autowired
+    private LoanRepository loanRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Test
     @DisplayName("Should persist device linked to laboratory")
@@ -94,5 +107,55 @@ class DeviceRepositoryTest {
         List<Device> devices = deviceRepository.findByLaboratoryIdAndStatus(labA.getId(), DeviceStatus.BORROWED);
 
         assertThat(devices).containsExactly(borrowedInA);
+    }
+
+    @Test
+    @DisplayName("Should release the device only while it has no approved loan")
+    void shouldReleaseDeviceUnlessItHasAnApprovedLoan() {
+        Laboratory laboratory = laboratoryRepository.save(new Laboratory("Lab Release"));
+        Device device = deviceRepository.save(new Device("Oscilloscope", null, laboratory));
+        Long deviceId = device.getId();
+        User user = userRepository.save(
+                new User("Ana Silva", "ana.release@inatel.br", "hashed", Role.PARTICIPANT));
+        LocalDateTime start = LocalDateTime.of(2026, 12, 1, 8, 0);
+        Loan loan = loanRepository.save(new Loan(user, laboratory, device, start, start.plusHours(2)));
+
+        // A loan that was only requested does not commit the device yet.
+        setStatus(deviceId, DeviceStatus.MAINTENANCE);
+        assertThat(deviceRepository.releaseUnlessApprovedLoan(deviceId)).isEqualTo(1);
+        assertThat(statusOf(deviceId)).isEqualTo(DeviceStatus.AVAILABLE);
+
+        setLoanStatus(loan.getId(), LoanStatus.APPROVED);
+        setStatus(deviceId, DeviceStatus.MAINTENANCE);
+        assertThat(deviceRepository.releaseUnlessApprovedLoan(deviceId)).isZero();
+        assertThat(statusOf(deviceId)).isEqualTo(DeviceStatus.MAINTENANCE);
+
+        setLoanStatus(loan.getId(), LoanStatus.RETURNED);
+        assertThat(deviceRepository.releaseUnlessApprovedLoan(deviceId)).isEqualTo(1);
+        assertThat(statusOf(deviceId)).isEqualTo(DeviceStatus.AVAILABLE);
+    }
+
+    @Test
+    @DisplayName("Should release nothing when the device does not exist")
+    void shouldReleaseNothingForUnknownDevice() {
+        assertThat(deviceRepository.releaseUnlessApprovedLoan(-1L)).isZero();
+    }
+
+    // The conditional update clears the persistence context, so entities are always re-read.
+
+    private void setStatus(Long deviceId, DeviceStatus status) {
+        Device device = deviceRepository.findById(deviceId).orElseThrow();
+        device.setStatus(status);
+        deviceRepository.save(device);
+    }
+
+    private void setLoanStatus(Long loanId, LoanStatus status) {
+        Loan loan = loanRepository.findById(loanId).orElseThrow();
+        loan.setStatus(status);
+        loanRepository.save(loan);
+    }
+
+    private DeviceStatus statusOf(Long deviceId) {
+        return deviceRepository.findById(deviceId).orElseThrow().getStatus();
     }
 }

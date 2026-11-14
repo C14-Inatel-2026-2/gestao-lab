@@ -1,5 +1,6 @@
 package br.inatel.labs.service;
 
+import br.inatel.labs.exception.InvalidLaboratoryException;
 import br.inatel.labs.exception.LaboratoryInUseException;
 import br.inatel.labs.exception.LaboratoryNotFoundException;
 import br.inatel.labs.model.Laboratory;
@@ -51,7 +52,7 @@ public class LaboratoryService {
 
     private void validateName(String name) {
         if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("Laboratory name is required");
+            throw new InvalidLaboratoryException();
         }
     }
 }

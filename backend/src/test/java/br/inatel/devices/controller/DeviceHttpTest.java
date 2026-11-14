@@ -1,10 +1,12 @@
 package br.inatel.devices.controller;
 
 import br.inatel.devices.exception.DeviceNotFoundException;
+import br.inatel.devices.exception.DeviceStatusConflictException;
 import br.inatel.devices.exception.InvalidDeviceException;
 import br.inatel.devices.model.Device;
 import br.inatel.devices.model.DeviceStatus;
 import br.inatel.devices.service.DeviceService;
+import br.inatel.labs.exception.LaboratoryNotFoundException;
 import br.inatel.labs.model.Laboratory;
 import br.inatel.labs.service.LaboratoryService;
 import br.inatel.users.config.SecurityConfig;
@@ -146,14 +148,14 @@ class DeviceHttpTest {
     }
 
     @Test
-    void returnsBadRequestWhenLaboratoryDoesNotExist() throws Exception {
+    void returnsNotFoundWhenLaboratoryDoesNotExist() throws Exception {
         when(laboratoryService.findById(99L))
-                .thenThrow(new IllegalArgumentException("Laboratory not found"));
+                .thenThrow(new LaboratoryNotFoundException());
         String body = "{\"name\":\"Oscilloscope\",\"laboratoryId\":99}";
 
         mvc.perform(post("/api/devices").header("Authorization", "Bearer " + adminToken)
                         .contentType("application/json").content(body))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Laboratory not found"));
 
         verifyNoInteractions(deviceService);
@@ -203,6 +205,25 @@ class DeviceHttpTest {
     }
 
     @Test
+    void rejectsUnknownStatusFilter() throws Exception {
+        mvc.perform(get("/api/devices?status=FOO").header("Authorization", "Bearer " + participantToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Invalid value for parameter 'status'"));
+
+        verifyNoInteractions(deviceService);
+    }
+
+    @Test
+    void rejectsNonNumericDeviceId() throws Exception {
+        mvc.perform(patch("/api/devices/abc/status").header("Authorization", "Bearer " + adminToken)
+                        .contentType("application/json").content("{\"status\":\"MAINTENANCE\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Invalid value for parameter 'id'"));
+
+        verifyNoInteractions(deviceService);
+    }
+
+    @Test
     void rejectsListWithoutToken() throws Exception {
         mvc.perform(get("/api/devices")).andExpect(status().isUnauthorized());
 
@@ -213,7 +234,7 @@ class DeviceHttpTest {
 
     @Test
     void adminUpdatesDeviceStatus() throws Exception {
-        when(deviceService.updateStatus(7L, DeviceStatus.MAINTENANCE))
+        when(deviceService.changeStatusManually(7L, DeviceStatus.MAINTENANCE))
                 .thenReturn(device(7L, "Oscilloscope", DeviceStatus.MAINTENANCE));
 
         mvc.perform(patch("/api/devices/7/status").header("Authorization", "Bearer " + adminToken)
@@ -234,13 +255,37 @@ class DeviceHttpTest {
 
     @Test
     void returnsNotFoundWhenUpdatingUnknownDevice() throws Exception {
-        when(deviceService.updateStatus(99L, DeviceStatus.BORROWED))
+        when(deviceService.changeStatusManually(99L, DeviceStatus.MAINTENANCE))
                 .thenThrow(new DeviceNotFoundException("Device not found"));
 
         mvc.perform(patch("/api/devices/99/status").header("Authorization", "Bearer " + adminToken)
-                        .contentType("application/json").content("{\"status\":\"BORROWED\"}"))
+                        .contentType("application/json").content("{\"status\":\"MAINTENANCE\"}"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Device not found"));
+    }
+
+    @Test
+    void returnsConflictWhenReleasingDeviceWithApprovedLoan() throws Exception {
+        when(deviceService.changeStatusManually(7L, DeviceStatus.AVAILABLE))
+                .thenThrow(new DeviceStatusConflictException("Device has an approved loan"));
+
+        mvc.perform(patch("/api/devices/7/status").header("Authorization", "Bearer " + adminToken)
+                        .contentType("application/json").content("{\"status\":\"AVAILABLE\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Device has an approved loan"));
+    }
+
+    @Test
+    void returnsConflictWhenMarkingDeviceAsBorrowedByHand() throws Exception {
+        when(deviceService.changeStatusManually(7L, DeviceStatus.BORROWED))
+                .thenThrow(new DeviceStatusConflictException(
+                        "Device can only be marked as borrowed by approving a loan"));
+
+        mvc.perform(patch("/api/devices/7/status").header("Authorization", "Bearer " + adminToken)
+                        .contentType("application/json").content("{\"status\":\"BORROWED\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message")
+                        .value("Device can only be marked as borrowed by approving a loan"));
     }
 
     @Test

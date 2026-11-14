@@ -3,9 +3,11 @@ package br.inatel.loans.controller;
 import br.inatel.devices.exception.DeviceNotFoundException;
 import br.inatel.devices.model.Device;
 import br.inatel.devices.service.DeviceService;
+import br.inatel.labs.exception.LaboratoryNotFoundException;
 import br.inatel.labs.model.Laboratory;
 import br.inatel.labs.service.LaboratoryService;
 import br.inatel.loans.exception.InvalidLoanException;
+import br.inatel.loans.exception.LoanConflictException;
 import br.inatel.loans.exception.LoanNotFoundException;
 import br.inatel.loans.model.Loan;
 import br.inatel.loans.model.LoanStatus;
@@ -161,24 +163,47 @@ class LoanHttpTest {
     @Test
     void returnsBadRequestWithServiceMessageWhenLoanIsInvalid() throws Exception {
         when(loanService.create(user, laboratory, device, start, end))
-                .thenThrow(new InvalidLoanException("Device is already booked for this period"));
+                .thenThrow(new InvalidLoanException("Device does not belong to the laboratory"));
 
         mvc.perform(post("/api/loans").header("Authorization", "Bearer " + token)
                         .contentType("application/json").content(VALID_BODY))
                 .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Device does not belong to the laboratory"));
+    }
+
+    @Test
+    void returnsConflictWhenDeviceIsAlreadyBooked() throws Exception {
+        when(loanService.create(user, laboratory, device, start, end))
+                .thenThrow(new LoanConflictException("Device is already booked for this period"));
+
+        mvc.perform(post("/api/loans").header("Authorization", "Bearer " + token)
+                        .contentType("application/json").content(VALID_BODY))
+                .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("Device is already booked for this period"));
     }
 
     @Test
-    void returnsBadRequestWhenLaboratoryDoesNotExist() throws Exception {
+    void returnsNotFoundWhenAuthenticatedUserNoLongerExists() throws Exception {
+        when(userRepository.findById(1L)).thenReturn(Optional.empty());
+
+        mvc.perform(post("/api/loans").header("Authorization", "Bearer " + token)
+                        .contentType("application/json").content(VALID_BODY))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("User not found"));
+
+        verifyNoInteractions(loanService);
+    }
+
+    @Test
+    void returnsNotFoundWhenLaboratoryDoesNotExist() throws Exception {
         when(laboratoryService.findById(99L))
-                .thenThrow(new IllegalArgumentException("Laboratory not found"));
+                .thenThrow(new LaboratoryNotFoundException());
         String body = "{\"laboratoryId\":99,\"deviceId\":4,\"startDateTime\":\"2026-09-15T08:00:00\","
                 + "\"endDateTime\":\"2026-09-15T10:00:00\"}";
 
         mvc.perform(post("/api/loans").header("Authorization", "Bearer " + token)
                         .contentType("application/json").content(body))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Laboratory not found"));
 
         verifyNoInteractions(loanService);
@@ -279,13 +304,32 @@ class LoanHttpTest {
     }
 
     @Test
-    void returnsBadRequestWhenApprovalIsNotAllowed() throws Exception {
+    void returnsConflictWhenApprovalIsNotAllowed() throws Exception {
         when(loanService.approve(3L))
-                .thenThrow(new InvalidLoanException("Device is under maintenance"));
+                .thenThrow(new LoanConflictException("Device is under maintenance"));
 
         mvc.perform(patch("/api/loans/3/approve").header("Authorization", "Bearer " + adminToken))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("Device is under maintenance"));
+    }
+
+    @Test
+    void rejectsNonNumericLoanId() throws Exception {
+        mvc.perform(patch("/api/loans/abc/approve").header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Invalid value for parameter 'id'"));
+
+        verifyNoInteractions(loanService);
+    }
+
+    @Test
+    void returnsConflictWhenRejectingLoanThatIsNotRequested() throws Exception {
+        when(loanService.reject(3L))
+                .thenThrow(new LoanConflictException("Only requested loans can be rejected"));
+
+        mvc.perform(patch("/api/loans/3/reject").header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Only requested loans can be rejected"));
     }
 
     @Test
@@ -323,12 +367,12 @@ class LoanHttpTest {
     }
 
     @Test
-    void returnsBadRequestWhenReturnIsRegisteredTwice() throws Exception {
+    void returnsConflictWhenReturnIsRegisteredTwice() throws Exception {
         when(loanService.registerReturn(3L))
-                .thenThrow(new InvalidLoanException("Only approved loans can be returned"));
+                .thenThrow(new LoanConflictException("Only approved loans can be returned"));
 
         mvc.perform(patch("/api/loans/3/return").header("Authorization", "Bearer " + adminToken))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("Only approved loans can be returned"));
     }
 }

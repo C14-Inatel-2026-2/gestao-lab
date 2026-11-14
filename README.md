@@ -31,14 +31,14 @@ Projeto acadêmico - Engenharia de Software (C14)
 
 Monorepo: backend, frontend, scripts de banco e CI/CD juntos.
 
-Consulte o [índice da documentação](docs/README.md) para convenções de API e erros,
+Consulte o [índice da documentação](backend/docs/README.md) para convenções de API e erros,
 contratos por domínio e guias operacionais.
 
 ```
 gestao-lab/
 ├── backend/
+│   └── docs/
 ├── frontend/
-├── docs/
 └── README.md
 ```
 
@@ -126,7 +126,8 @@ O desenvolvimento do projeto é organizado utilizando Scrum. O Jira é utilizado
 |---|---|---|
 | Mensagem de credenciais inválidas repetida em `UserService.validateCredentials`. | Reutilizado o construtor sem argumentos de `InvalidCredentialsException`, preservando a mensagem existente. | @LucasYnoguti |
 | Regra de expiração de sessões duplicada em `TokenService.issue` e `resolve`. | Centralizada em `Session.isExpiredAt(Instant)`, preservando a expiração no instante limite. | @LucasYnoguti |
+| Validação de campo obrigatório repetida cinco vezes em `LoanService.create`. | Extraída para o método privado `requirePresent`, preservando as mensagens e a ordem das validações. | @Miwamma |
 ## Documentação da API
 
-- [Usuários e autenticação](docs/users.md)
-- [Laboratórios](docs/labs.md)
+- [Usuários e autenticação](backend/docs/domains/users/api.md)
+- [Laboratórios](backend/docs/domains/labs/api.md)

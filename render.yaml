@@ -14,7 +14,7 @@ services:
     name: gestao-lab-backend
     runtime: docker
     plan: free
-    branch: main
+    branch: feat/frontend-login
     autoDeploy: false
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
@@ -44,7 +44,7 @@ services:
     name: gestao-lab-frontend
     runtime: docker
     plan: free
-    branch: main
+    branch: feat/frontend-login
     autoDeploy: false
     dockerfilePath: ./frontend/Dockerfile
     dockerContext: ./frontend

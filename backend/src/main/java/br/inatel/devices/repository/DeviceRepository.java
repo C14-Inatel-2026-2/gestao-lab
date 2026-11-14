@@ -2,6 +2,7 @@ package br.inatel.devices.repository;
 
 import br.inatel.devices.model.Device;
 import br.inatel.devices.model.DeviceStatus;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
@@ -24,9 +25,15 @@ public interface DeviceRepository extends Repository<Device, Long> {
     List<Device> findByLaboratoryIdAndStatus(Long laboratoryId, DeviceStatus status);
 
     /**
-     * True while the device is committed to at least one approved loan that was not returned yet.
+     * Marks the device as AVAILABLE only if it has no approved loan, in a single statement.
+     * Checking and updating together is what makes the release atomic with respect to loan
+     * approvals: there is no gap between the check and the write for an approval to slip into.
+     *
+     * @return 1 when the device was released, 0 when an approved loan blocked it
      */
-    @Query("select count(l) > 0 from Loan l "
-            + "where l.device.id = :id and l.status = br.inatel.loans.model.LoanStatus.APPROVED")
-    boolean hasApprovedLoans(@Param("id") Long id);
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update Device d set d.status = br.inatel.devices.model.DeviceStatus.AVAILABLE "
+            + "where d.id = :id and not exists (select 1 from Loan l "
+            + "where l.device.id = d.id and l.status = br.inatel.loans.model.LoanStatus.APPROVED)")
+    int releaseUnlessApprovedLoan(@Param("id") Long id);
 }

@@ -134,6 +134,10 @@ O status precisa permanecer coerente com os empréstimos do dispositivo:
 Um dispositivo em manutenção com empréstimo aprovado só pode voltar a `AVAILABLE`
 depois que a devolução for registrada em `PATCH /api/loans/{id}/return`.
 
+A liberação para `AVAILABLE` é atômica em relação à aprovação de empréstimos: a
+verificação e a atualização acontecem em uma única instrução no banco, de modo que uma
+aprovação simultânea nunca é sobrescrita.
+
 ### Resposta de sucesso — 200
 
 ```json
@@ -173,4 +177,6 @@ cd backend
 
 `DeviceServiceTest` cobre as regras de negócio com Mockito, `DeviceHttpTest` cobre as
 rotas, as permissões e os status de erro, e `DeviceRepositoryTest` cobre a persistência
-e a consulta de empréstimos aprovados em SQLite em memória.
+e a liberação condicional em SQLite em memória. `DeviceStatusConcurrencyTest` dispara a
+liberação e a aprovação de um empréstimo ao mesmo tempo e confirma que o dispositivo
+nunca fica `AVAILABLE` com empréstimo aprovado.

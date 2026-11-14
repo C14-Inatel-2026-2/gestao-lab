@@ -186,16 +186,19 @@ class DeviceServiceTest {
 
     @Test
     void shouldLetAdminReleaseDeviceWithoutApprovedLoan() {
-        Device device = new Device("Oscilloscope", null, laboratory);
-        device.setStatus(DeviceStatus.MAINTENANCE);
-        when(repository.findById(5L)).thenReturn(Optional.of(device));
-        when(repository.hasApprovedLoans(5L)).thenReturn(false);
-        when(repository.save(device)).thenReturn(device);
+        Device inMaintenance = new Device("Oscilloscope", null, laboratory);
+        inMaintenance.setStatus(DeviceStatus.MAINTENANCE);
+        Device released = new Device("Oscilloscope", null, laboratory);
+        // The release happens in the database, so the service reads the device again afterwards.
+        when(repository.findById(5L)).thenReturn(Optional.of(inMaintenance), Optional.of(released));
+        when(repository.releaseUnlessApprovedLoan(5L)).thenReturn(1);
 
         Device updated = service.changeStatusManually(5L, DeviceStatus.AVAILABLE);
 
+        assertSame(released, updated);
         assertEquals(DeviceStatus.AVAILABLE, updated.getStatus());
-        verify(repository).save(device);
+        // No check-then-save: the conditional update is the only write.
+        verify(repository, never()).save(any(Device.class));
     }
 
     @Test
@@ -203,7 +206,7 @@ class DeviceServiceTest {
         Device device = new Device("Oscilloscope", null, laboratory);
         device.setStatus(DeviceStatus.BORROWED);
         when(repository.findById(5L)).thenReturn(Optional.of(device));
-        when(repository.hasApprovedLoans(5L)).thenReturn(true);
+        when(repository.releaseUnlessApprovedLoan(5L)).thenReturn(0);
 
         DeviceStatusConflictException exception = assertThrows(DeviceStatusConflictException.class,
                 () -> service.changeStatusManually(5L, DeviceStatus.AVAILABLE));
@@ -224,6 +227,7 @@ class DeviceServiceTest {
         assertEquals("Device can only be marked as borrowed by approving a loan", exception.getMessage());
         assertEquals(DeviceStatus.AVAILABLE, device.getStatus());
         verify(repository, never()).save(any(Device.class));
+        verify(repository, never()).releaseUnlessApprovedLoan(5L);
     }
 
     @Test

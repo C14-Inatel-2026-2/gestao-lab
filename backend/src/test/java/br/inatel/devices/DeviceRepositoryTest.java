@@ -110,24 +110,52 @@ class DeviceRepositoryTest {
     }
 
     @Test
-    @DisplayName("Should report approved loans only while one is still approved")
-    void shouldReportApprovedLoans() {
-        Laboratory laboratory = laboratoryRepository.save(new Laboratory("Lab Approved Loans"));
+    @DisplayName("Should release the device only while it has no approved loan")
+    void shouldReleaseDeviceUnlessItHasAnApprovedLoan() {
+        Laboratory laboratory = laboratoryRepository.save(new Laboratory("Lab Release"));
         Device device = deviceRepository.save(new Device("Oscilloscope", null, laboratory));
+        Long deviceId = device.getId();
         User user = userRepository.save(
-                new User("Ana Silva", "ana.loans@inatel.br", "hashed", Role.PARTICIPANT));
+                new User("Ana Silva", "ana.release@inatel.br", "hashed", Role.PARTICIPANT));
         LocalDateTime start = LocalDateTime.of(2026, 12, 1, 8, 0);
         Loan loan = loanRepository.save(new Loan(user, laboratory, device, start, start.plusHours(2)));
 
         // A loan that was only requested does not commit the device yet.
-        assertThat(deviceRepository.hasApprovedLoans(device.getId())).isFalse();
+        setStatus(deviceId, DeviceStatus.MAINTENANCE);
+        assertThat(deviceRepository.releaseUnlessApprovedLoan(deviceId)).isEqualTo(1);
+        assertThat(statusOf(deviceId)).isEqualTo(DeviceStatus.AVAILABLE);
 
-        loan.setStatus(LoanStatus.APPROVED);
-        loanRepository.save(loan);
-        assertThat(deviceRepository.hasApprovedLoans(device.getId())).isTrue();
+        setLoanStatus(loan.getId(), LoanStatus.APPROVED);
+        setStatus(deviceId, DeviceStatus.MAINTENANCE);
+        assertThat(deviceRepository.releaseUnlessApprovedLoan(deviceId)).isZero();
+        assertThat(statusOf(deviceId)).isEqualTo(DeviceStatus.MAINTENANCE);
 
-        loan.setStatus(LoanStatus.RETURNED);
+        setLoanStatus(loan.getId(), LoanStatus.RETURNED);
+        assertThat(deviceRepository.releaseUnlessApprovedLoan(deviceId)).isEqualTo(1);
+        assertThat(statusOf(deviceId)).isEqualTo(DeviceStatus.AVAILABLE);
+    }
+
+    @Test
+    @DisplayName("Should release nothing when the device does not exist")
+    void shouldReleaseNothingForUnknownDevice() {
+        assertThat(deviceRepository.releaseUnlessApprovedLoan(-1L)).isZero();
+    }
+
+    // The conditional update clears the persistence context, so entities are always re-read.
+
+    private void setStatus(Long deviceId, DeviceStatus status) {
+        Device device = deviceRepository.findById(deviceId).orElseThrow();
+        device.setStatus(status);
+        deviceRepository.save(device);
+    }
+
+    private void setLoanStatus(Long loanId, LoanStatus status) {
+        Loan loan = loanRepository.findById(loanId).orElseThrow();
+        loan.setStatus(status);
         loanRepository.save(loan);
-        assertThat(deviceRepository.hasApprovedLoans(device.getId())).isFalse();
+    }
+
+    private DeviceStatus statusOf(Long deviceId) {
+        return deviceRepository.findById(deviceId).orElseThrow().getStatus();
     }
 }

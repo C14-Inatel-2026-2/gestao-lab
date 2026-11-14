@@ -192,3 +192,4 @@ As alterações eram desenvolvidas em branches por funcionalidade ou correção 
 
 - [Igor Nogueira Olivio — atividades, aprendizado e uso de IA](docs/entrega/igor-olivio.md)
 - [Lucas Nolasco Ynoguti — atividades, aprendizado e uso de IA](docs/entrega/lucas-ynoguti.md)
+- [Mauro Iwama — atividades, aprendizado e uso de IA](docs/entrega/mauro-iwama.md)

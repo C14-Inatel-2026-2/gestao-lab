@@ -3,6 +3,7 @@ package br.inatel.loans.controller;
 import br.inatel.devices.exception.DeviceNotFoundException;
 import br.inatel.devices.model.Device;
 import br.inatel.devices.service.DeviceService;
+import br.inatel.labs.exception.LaboratoryNotFoundException;
 import br.inatel.labs.model.Laboratory;
 import br.inatel.labs.service.LaboratoryService;
 import br.inatel.loans.dto.LoanRequest;
@@ -11,6 +12,7 @@ import br.inatel.loans.exception.InvalidLoanException;
 import br.inatel.loans.model.Loan;
 import br.inatel.loans.model.LoanStatus;
 import br.inatel.loans.service.LoanService;
+import br.inatel.users.exception.UserNotFoundException;
 import br.inatel.users.model.Role;
 import br.inatel.users.model.User;
 import br.inatel.users.repository.UserRepository;
@@ -123,10 +125,10 @@ class LoanControllerTest {
     void shouldPropagateLaboratoryNotFound() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(laboratoryService.findById(99L))
-                .thenThrow(new IllegalArgumentException("Laboratory not found"));
+                .thenThrow(new LaboratoryNotFoundException());
 
         assertThatThrownBy(() -> loanController.create(identity, new LoanRequest(99L, 4L, start, end)))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(LaboratoryNotFoundException.class)
                 .hasMessage("Laboratory not found");
 
         verifyNoInteractions(loanService);
@@ -152,7 +154,7 @@ class LoanControllerTest {
         when(userRepository.findById(1L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> loanController.create(identity, new LoanRequest(2L, 4L, start, end)))
-                .isInstanceOf(InvalidLoanException.class)
+                .isInstanceOf(UserNotFoundException.class)
                 .hasMessage("User not found");
 
         verifyNoInteractions(loanService);

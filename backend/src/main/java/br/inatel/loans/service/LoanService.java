@@ -5,6 +5,7 @@ import br.inatel.devices.model.DeviceStatus;
 import br.inatel.devices.service.DeviceService;
 import br.inatel.labs.model.Laboratory;
 import br.inatel.loans.exception.InvalidLoanException;
+import br.inatel.loans.exception.LoanConflictException;
 import br.inatel.loans.exception.LoanNotFoundException;
 import br.inatel.loans.model.Loan;
 import br.inatel.loans.model.LoanStatus;
@@ -118,17 +119,17 @@ public class LoanService {
 
     private void requireStatus(Loan loan, LoanStatus expected, String message) {
         if (loan.getStatus() != expected) {
-            throw new InvalidLoanException(message);
+            throw new LoanConflictException(message);
         }
     }
 
     private void ensureDeviceCanBeLoaned(Device device, LocalDateTime start, LocalDateTime end) {
         if (device.getStatus() == DeviceStatus.MAINTENANCE) {
-            throw new InvalidLoanException("Device is under maintenance");
+            throw new LoanConflictException("Device is under maintenance");
         }
         if (repository.existsByDeviceIdAndStatusAndStartDateTimeLessThanAndEndDateTimeGreaterThan(
                 device.getId(), LoanStatus.APPROVED, end, start)) {
-            throw new InvalidLoanException("Device is already booked for this period");
+            throw new LoanConflictException("Device is already booked for this period");
         }
     }
 }

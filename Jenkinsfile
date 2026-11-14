@@ -59,6 +59,9 @@ pipeline {
         }
 
         stage('Disparar deploy no Render') {
+            when {
+                branch 'main'
+            }
             steps {
                 withCredentials([
                     string(

@@ -4,6 +4,27 @@ Esta documentação segue as [convenções de API](../../conventions/api.md) e a
 [convenções de erros](../../conventions/errors.md). Cadastro e login são públicos; a
 promoção exige token Bearer de administrador.
 
+Cadastro e login não recebem parâmetros de caminho ou consulta. A promoção recebe
+somente o parâmetro de caminho `id`. Requisições com corpo usam `Content-Type:
+application/json`; as respostas com corpo são JSON. O login retorna `200`, pois
+autentica uma conta existente, enquanto o cadastro cria um recurso e retorna `201`.
+
+## Formato dos erros
+
+Os erros usam `{ "message": "..." }`. Mensagens do domínio:
+
+| Situação | Status | Mensagem |
+| --- | --- | --- |
+| Cadastro inválido (validação do DTO) | 400 | `Invalid registration data` |
+| JSON malformado ou corpo ausente | 400 | `Malformed request` |
+| Identificador não numérico ou fora do intervalo de Long | 400 | `Invalid user id` |
+| Credenciais inválidas | 401 | `Invalid email or password` |
+| Token ausente, inválido ou expirado | 401 | `Authentication required` |
+| Perfil sem permissão | 403 | `Access denied` |
+| Usuário inexistente | 404 | `User not found` |
+| E-mail duplicado | 409 | `Email already registered` |
+| Conflito de persistência | 409 | `Registration conflicts with existing data` |
+
 ## POST /api/auth/register
 
 Cria uma conta com perfil `PARTICIPANT`; o cliente não pode escolher `ADMIN`.
@@ -122,6 +143,7 @@ Não há corpo de requisição.
 | 401 | Token ausente, inválido ou expirado |
 | 403 | Solicitante autenticado com perfil `PARTICIPANT` |
 | 404 | Usuário de destino inexistente |
+| 400 | `id` não numérico ou fora do intervalo de Long |
 
 ```bash
 curl -i -X PATCH http://localhost:8080/api/users/2/promote \

@@ -34,10 +34,21 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(AuthController.class)
+@WebMvcTest({AuthController.class, UserController.class})
 @Import({SecurityConfig.class, TokenService.class, UserService.class, AuthExceptionHandler.class,
         AuthHttpTest.ProtectedEndpoints.class})
 class AuthHttpTest {
+    @Test
+    void invalidUserIdentifierReturnsStandardError() throws Exception {
+        String token = login(Role.ADMIN);
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .patch("/api/users/invalid/promote")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
+                .andExpect(jsonPath("$.message").value("Invalid user id"));
+    }
+
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper mapper;
     @Autowired PasswordEncoder encoder;

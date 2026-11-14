@@ -79,8 +79,7 @@ class LoanServiceTest {
     }
 
     private void stubOverlap(boolean overlaps) {
-        when(repository.existsByDeviceIdAndStatusAndStartDateTimeLessThanAndEndDateTimeGreaterThan(
-                5L, LoanStatus.APPROVED, end, start)).thenReturn(overlaps);
+        when(repository.existsOverlapping(5L, LoanStatus.APPROVED, start, end)).thenReturn(overlaps);
     }
 
     // ---- create ----

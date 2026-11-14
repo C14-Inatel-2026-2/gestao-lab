@@ -55,8 +55,7 @@ class LoanRepositoryTest {
     }
 
     private boolean overlaps(Device target, LocalDateTime from, LocalDateTime to) {
-        return loanRepository.existsByDeviceIdAndStatusAndStartDateTimeLessThanAndEndDateTimeGreaterThan(
-                target.getId(), LoanStatus.APPROVED, to, from);
+        return loanRepository.existsOverlapping(target.getId(), LoanStatus.APPROVED, from, to);
     }
 
     @Test

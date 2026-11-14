@@ -31,21 +31,11 @@ public class LoanService {
 
     public Loan create(User user, Laboratory laboratory, Device device,
                        LocalDateTime startDateTime, LocalDateTime endDateTime) {
-        if (user == null) {
-            throw new InvalidLoanException("User must not be null");
-        }
-        if (laboratory == null) {
-            throw new InvalidLoanException("Laboratory must not be null");
-        }
-        if (device == null) {
-            throw new InvalidLoanException("Device must not be null");
-        }
-        if (startDateTime == null) {
-            throw new InvalidLoanException("Start date/time must not be null");
-        }
-        if (endDateTime == null) {
-            throw new InvalidLoanException("End date/time must not be null");
-        }
+        requirePresent(user, "User must not be null");
+        requirePresent(laboratory, "Laboratory must not be null");
+        requirePresent(device, "Device must not be null");
+        requirePresent(startDateTime, "Start date/time must not be null");
+        requirePresent(endDateTime, "End date/time must not be null");
         if (!endDateTime.isAfter(startDateTime)) {
             throw new InvalidLoanException("End date/time must be after start date/time");
         }
@@ -115,6 +105,12 @@ public class LoanService {
     private Loan findLoan(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new LoanNotFoundException("Loan not found"));
+    }
+
+    private void requirePresent(Object value, String message) {
+        if (value == null) {
+            throw new InvalidLoanException(message);
+        }
     }
 
     private void requireStatus(Loan loan, LoanStatus expected, String message) {

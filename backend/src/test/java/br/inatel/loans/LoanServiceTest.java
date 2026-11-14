@@ -5,6 +5,7 @@ import br.inatel.devices.model.DeviceStatus;
 import br.inatel.devices.service.DeviceService;
 import br.inatel.labs.model.Laboratory;
 import br.inatel.loans.exception.InvalidLoanException;
+import br.inatel.loans.exception.LoanConflictException;
 import br.inatel.loans.exception.LoanNotFoundException;
 import br.inatel.loans.model.Loan;
 import br.inatel.loans.model.LoanStatus;
@@ -154,15 +155,19 @@ class LoanServiceTest {
     void shouldRejectDeviceInMaintenance() {
         device.setStatus(DeviceStatus.MAINTENANCE);
 
-        assertInvalidLoan("Device is under maintenance",
+        LoanConflictException exception = assertThrows(LoanConflictException.class,
                 () -> service.create(user, laboratory, device, start, end));
+
+        assertEquals("Device is under maintenance", exception.getMessage());
+        verifyNoInteractions(repository);
+        verifyNoInteractions(deviceService);
     }
 
     @Test
     void shouldRejectPeriodThatOverlapsAnApprovedLoan() {
         stubOverlap(true);
 
-        InvalidLoanException exception = assertThrows(InvalidLoanException.class,
+        LoanConflictException exception = assertThrows(LoanConflictException.class,
                 () -> service.create(user, laboratory, device, start, end));
 
         assertEquals("Device is already booked for this period", exception.getMessage());
@@ -235,7 +240,7 @@ class LoanServiceTest {
         Loan loan = loanWithStatus(LoanStatus.APPROVED);
         when(repository.findById(10L)).thenReturn(Optional.of(loan));
 
-        InvalidLoanException exception = assertThrows(InvalidLoanException.class,
+        LoanConflictException exception = assertThrows(LoanConflictException.class,
                 () -> service.approve(10L));
 
         assertEquals("Only requested loans can be approved", exception.getMessage());
@@ -249,7 +254,7 @@ class LoanServiceTest {
         device.setStatus(DeviceStatus.MAINTENANCE);
         when(repository.findById(10L)).thenReturn(Optional.of(loan));
 
-        InvalidLoanException exception = assertThrows(InvalidLoanException.class,
+        LoanConflictException exception = assertThrows(LoanConflictException.class,
                 () -> service.approve(10L));
 
         assertEquals("Device is under maintenance", exception.getMessage());
@@ -264,7 +269,7 @@ class LoanServiceTest {
         when(repository.findById(10L)).thenReturn(Optional.of(loan));
         stubOverlap(true);
 
-        InvalidLoanException exception = assertThrows(InvalidLoanException.class,
+        LoanConflictException exception = assertThrows(LoanConflictException.class,
                 () -> service.approve(10L));
 
         assertEquals("Device is already booked for this period", exception.getMessage());
@@ -292,7 +297,7 @@ class LoanServiceTest {
         Loan loan = loanWithStatus(LoanStatus.APPROVED);
         when(repository.findById(10L)).thenReturn(Optional.of(loan));
 
-        InvalidLoanException exception = assertThrows(InvalidLoanException.class,
+        LoanConflictException exception = assertThrows(LoanConflictException.class,
                 () -> service.reject(10L));
 
         assertEquals("Only requested loans can be rejected", exception.getMessage());
@@ -339,7 +344,7 @@ class LoanServiceTest {
         Loan loan = loanWithStatus(LoanStatus.RETURNED);
         when(repository.findById(10L)).thenReturn(Optional.of(loan));
 
-        InvalidLoanException exception = assertThrows(InvalidLoanException.class,
+        LoanConflictException exception = assertThrows(LoanConflictException.class,
                 () -> service.registerReturn(10L));
 
         assertEquals("Only approved loans can be returned", exception.getMessage());
@@ -352,7 +357,7 @@ class LoanServiceTest {
         Loan loan = loanWithStatus(LoanStatus.REQUESTED);
         when(repository.findById(10L)).thenReturn(Optional.of(loan));
 
-        assertThrows(InvalidLoanException.class, () -> service.registerReturn(10L));
+        assertThrows(LoanConflictException.class, () -> service.registerReturn(10L));
 
         verifyNoInteractions(deviceService);
     }

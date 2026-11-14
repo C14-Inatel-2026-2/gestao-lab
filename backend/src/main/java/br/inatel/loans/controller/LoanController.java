@@ -6,9 +6,9 @@ import br.inatel.labs.model.Laboratory;
 import br.inatel.labs.service.LaboratoryService;
 import br.inatel.loans.dto.LoanRequest;
 import br.inatel.loans.dto.LoanResponse;
-import br.inatel.loans.exception.InvalidLoanException;
 import br.inatel.loans.model.Loan;
 import br.inatel.loans.service.LoanService;
+import br.inatel.users.exception.UserNotFoundException;
 import br.inatel.users.model.Role;
 import br.inatel.users.model.User;
 import br.inatel.users.repository.UserRepository;
@@ -54,7 +54,7 @@ public class LoanController {
     public ResponseEntity<LoanResponse> create(@AuthenticationPrincipal TokenService.Identity identity,
                                                @Valid @RequestBody LoanRequest request) {
         User user = userRepository.findById(identity.userId())
-                .orElseThrow(() -> new InvalidLoanException("User not found"));
+                .orElseThrow(UserNotFoundException::new);
         Laboratory laboratory = laboratoryService.findById(request.laboratoryId());
         Device device = deviceService.findById(request.deviceId());
 

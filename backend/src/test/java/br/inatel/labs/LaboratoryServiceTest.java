@@ -1,5 +1,7 @@
 package br.inatel.labs;
 
+import br.inatel.labs.exception.InvalidLaboratoryException;
+import br.inatel.labs.exception.LaboratoryNotFoundException;
 import br.inatel.labs.model.Laboratory;
 import br.inatel.labs.repository.LaboratoryRepository;
 import br.inatel.labs.service.LaboratoryService;
@@ -53,8 +55,10 @@ class LaboratoryServiceTest {
     @NullAndEmptySource
     @ValueSource(strings = "   ")
     void shouldRejectInvalidNameWhenCreating(String name) {
-        assertThrows(IllegalArgumentException.class, () -> service.create(name));
+        InvalidLaboratoryException exception = assertThrows(
+                InvalidLaboratoryException.class, () -> service.create(name));
 
+        assertEquals("Laboratory name is required", exception.getMessage());
         verifyNoInteractions(repository);
     }
 
@@ -73,8 +77,8 @@ class LaboratoryServiceTest {
     void shouldRejectUnknownLaboratoryId() {
         when(repository.findById(1L)).thenReturn(Optional.empty());
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class, () -> service.findById(1L));
+        LaboratoryNotFoundException exception = assertThrows(
+                LaboratoryNotFoundException.class, () -> service.findById(1L));
 
         assertEquals("Laboratory not found", exception.getMessage());
         verify(repository).findById(1L);
@@ -97,8 +101,10 @@ class LaboratoryServiceTest {
     @NullAndEmptySource
     @ValueSource(strings = "   ")
     void shouldRejectInvalidNameWhenUpdating(String name) {
-        assertThrows(IllegalArgumentException.class, () -> service.update(1L, name));
+        InvalidLaboratoryException exception = assertThrows(
+                InvalidLaboratoryException.class, () -> service.update(1L, name));
 
+        assertEquals("Laboratory name is required", exception.getMessage());
         verifyNoInteractions(repository);
     }
 
@@ -106,8 +112,8 @@ class LaboratoryServiceTest {
     void shouldRejectUpdateOfUnknownLaboratory() {
         when(repository.findById(1L)).thenReturn(Optional.empty());
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class, () -> service.update(1L, "Lab Software"));
+        LaboratoryNotFoundException exception = assertThrows(
+                LaboratoryNotFoundException.class, () -> service.update(1L, "Lab Software"));
 
         assertEquals("Laboratory not found", exception.getMessage());
         verify(repository, never()).save(any(Laboratory.class));

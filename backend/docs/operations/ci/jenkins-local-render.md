@@ -102,13 +102,37 @@ Use **Build Now**. O resultado esperado é:
 1. `Checkout`: obtém o commit do GitHub.
 2. `Test`: executa `sh ./mvnw clean test` em `backend`.
 3. `Build`: executa `sh ./mvnw verify -DskipTests` em `backend` e exige cobertura de pelo menos 80% das linhas.
-4. `Disparar deploy no Render`: obtém o SHA com `git rev-parse HEAD` e solicita o deploy desse commit ao Render.
+4. `Disparar deploy no Render`: é executada somente quando `GIT_BRANCH` é `origin/main`; nessa situação, obtém o SHA com `git rev-parse HEAD` e solicita o deploy desse commit ao Render.
 
 O Jenkins arquiva o JAR e os relatórios de teste. Depois da última etapa, acompanhe o deploy no painel do Render e consulte `https://<servico>.onrender.com/actuator/health` quando ele terminar.
 
+## 8. Validar a condição de deploy antes de integrar
+
+O job descrito neste guia é do tipo **Pipeline script from SCM**, e não um
+Multibranch Pipeline. Por isso, a condição do estágio de deploy verifica a
+variável `GIT_BRANCH` fornecida pelo plugin Git após o checkout:
+
+```groovy
+when {
+    environment name: 'GIT_BRANCH', value: 'origin/main'
+}
+```
+
+Antes de usar a credencial ou chamar o Render, valide a condição em um job de
+teste. No `Jenkinsfile` desse job, substitua temporariamente o conteúdo de
+`steps` do estágio de deploy por:
+
+```groovy
+echo "Deploy de teste para ${env.GIT_BRANCH}"
+```
+
+Execute o job uma vez com `main` configurada no SCM e uma vez com outra branch.
+O estágio deve executar na `main` e ficar marcado como ignorado na outra branch.
+Esta validação ainda está pendente de execução no Jenkins.
+
 O arquivo `compose.deploy.yaml` não é usado por esse pipeline. Ele continua útil somente para subir e verificar o backend localmente de forma manual.
 
-## 8. Executar em um agente Windows
+## 9. Executar em um agente Windows
 
 O pipeline também suporta Jenkins ou agente instalado diretamente no Windows. Nesse ambiente, testes e build usam `mvnw.cmd` e o deploy usa Windows PowerShell com `Invoke-WebRequest`. Instale Git, JDK 21 e Windows PowerShell no agente e garanta que estejam disponíveis para a conta que executa o Jenkins. Cadastre a mesma credencial `render-deploy-hook` e configure o job e o webhook conforme as etapas anteriores.
 

@@ -5,12 +5,19 @@ import br.inatel.devices.model.DeviceStatus;
 import br.inatel.devices.repository.DeviceRepository;
 import br.inatel.labs.model.Laboratory;
 import br.inatel.labs.repository.LaboratoryRepository;
+import br.inatel.loans.model.Loan;
+import br.inatel.loans.model.LoanStatus;
+import br.inatel.loans.repository.LoanRepository;
+import br.inatel.users.model.Role;
+import br.inatel.users.model.User;
+import br.inatel.users.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -28,6 +35,12 @@ class DeviceRepositoryTest {
 
     @Autowired
     private LaboratoryRepository laboratoryRepository;
+
+    @Autowired
+    private LoanRepository loanRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Test
     @DisplayName("Should persist device linked to laboratory")
@@ -94,5 +107,27 @@ class DeviceRepositoryTest {
         List<Device> devices = deviceRepository.findByLaboratoryIdAndStatus(labA.getId(), DeviceStatus.BORROWED);
 
         assertThat(devices).containsExactly(borrowedInA);
+    }
+
+    @Test
+    @DisplayName("Should report approved loans only while one is still approved")
+    void shouldReportApprovedLoans() {
+        Laboratory laboratory = laboratoryRepository.save(new Laboratory("Lab Approved Loans"));
+        Device device = deviceRepository.save(new Device("Oscilloscope", null, laboratory));
+        User user = userRepository.save(
+                new User("Ana Silva", "ana.loans@inatel.br", "hashed", Role.PARTICIPANT));
+        LocalDateTime start = LocalDateTime.of(2026, 12, 1, 8, 0);
+        Loan loan = loanRepository.save(new Loan(user, laboratory, device, start, start.plusHours(2)));
+
+        // A loan that was only requested does not commit the device yet.
+        assertThat(deviceRepository.hasApprovedLoans(device.getId())).isFalse();
+
+        loan.setStatus(LoanStatus.APPROVED);
+        loanRepository.save(loan);
+        assertThat(deviceRepository.hasApprovedLoans(device.getId())).isTrue();
+
+        loan.setStatus(LoanStatus.RETURNED);
+        loanRepository.save(loan);
+        assertThat(deviceRepository.hasApprovedLoans(device.getId())).isFalse();
     }
 }

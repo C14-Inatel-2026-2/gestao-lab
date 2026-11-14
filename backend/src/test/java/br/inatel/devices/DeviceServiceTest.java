@@ -1,6 +1,7 @@
 package br.inatel.devices;
 
 import br.inatel.devices.exception.DeviceNotFoundException;
+import br.inatel.devices.exception.DeviceStatusConflictException;
 import br.inatel.devices.exception.InvalidDeviceException;
 import br.inatel.devices.model.Device;
 import br.inatel.devices.model.DeviceStatus;
@@ -155,6 +156,91 @@ class DeviceServiceTest {
     void shouldRejectNullStatus() {
         assertInvalidDevice("Device status must not be null",
                 () -> service.updateStatus(5L, null));
+    }
+
+    // ---- manual status change (PATCH /api/devices/{id}/status) ----
+
+    @Test
+    void shouldLetAdminSendDeviceToMaintenance() {
+        Device device = new Device("Oscilloscope", null, laboratory);
+        when(repository.findById(5L)).thenReturn(Optional.of(device));
+        when(repository.save(device)).thenReturn(device);
+
+        Device updated = service.changeStatusManually(5L, DeviceStatus.MAINTENANCE);
+
+        assertEquals(DeviceStatus.MAINTENANCE, updated.getStatus());
+        verify(repository).save(device);
+    }
+
+    @Test
+    void shouldLetAdminSendBorrowedDeviceToMaintenance() {
+        Device device = new Device("Oscilloscope", null, laboratory);
+        device.setStatus(DeviceStatus.BORROWED);
+        when(repository.findById(5L)).thenReturn(Optional.of(device));
+        when(repository.save(device)).thenReturn(device);
+
+        Device updated = service.changeStatusManually(5L, DeviceStatus.MAINTENANCE);
+
+        assertEquals(DeviceStatus.MAINTENANCE, updated.getStatus());
+    }
+
+    @Test
+    void shouldLetAdminReleaseDeviceWithoutApprovedLoan() {
+        Device device = new Device("Oscilloscope", null, laboratory);
+        device.setStatus(DeviceStatus.MAINTENANCE);
+        when(repository.findById(5L)).thenReturn(Optional.of(device));
+        when(repository.hasApprovedLoans(5L)).thenReturn(false);
+        when(repository.save(device)).thenReturn(device);
+
+        Device updated = service.changeStatusManually(5L, DeviceStatus.AVAILABLE);
+
+        assertEquals(DeviceStatus.AVAILABLE, updated.getStatus());
+        verify(repository).save(device);
+    }
+
+    @Test
+    void shouldRejectReleasingDeviceWithApprovedLoan() {
+        Device device = new Device("Oscilloscope", null, laboratory);
+        device.setStatus(DeviceStatus.BORROWED);
+        when(repository.findById(5L)).thenReturn(Optional.of(device));
+        when(repository.hasApprovedLoans(5L)).thenReturn(true);
+
+        DeviceStatusConflictException exception = assertThrows(DeviceStatusConflictException.class,
+                () -> service.changeStatusManually(5L, DeviceStatus.AVAILABLE));
+
+        assertEquals("Device has an approved loan", exception.getMessage());
+        assertEquals(DeviceStatus.BORROWED, device.getStatus());
+        verify(repository, never()).save(any(Device.class));
+    }
+
+    @Test
+    void shouldRejectMarkingDeviceAsBorrowedByHand() {
+        Device device = new Device("Oscilloscope", null, laboratory);
+        when(repository.findById(5L)).thenReturn(Optional.of(device));
+
+        DeviceStatusConflictException exception = assertThrows(DeviceStatusConflictException.class,
+                () -> service.changeStatusManually(5L, DeviceStatus.BORROWED));
+
+        assertEquals("Device can only be marked as borrowed by approving a loan", exception.getMessage());
+        assertEquals(DeviceStatus.AVAILABLE, device.getStatus());
+        verify(repository, never()).save(any(Device.class));
+    }
+
+    @Test
+    void shouldRejectManualChangeWhenDeviceDoesNotExist() {
+        when(repository.findById(99L)).thenReturn(Optional.empty());
+
+        DeviceNotFoundException exception = assertThrows(DeviceNotFoundException.class,
+                () -> service.changeStatusManually(99L, DeviceStatus.MAINTENANCE));
+
+        assertEquals("Device not found", exception.getMessage());
+        verify(repository, never()).save(any(Device.class));
+    }
+
+    @Test
+    void shouldRejectNullStatusOnManualChange() {
+        assertInvalidDevice("Device status must not be null",
+                () -> service.changeStatusManually(5L, null));
     }
 
     @Test

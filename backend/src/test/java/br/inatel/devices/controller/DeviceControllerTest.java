@@ -7,6 +7,7 @@ import br.inatel.devices.exception.DeviceNotFoundException;
 import br.inatel.devices.model.Device;
 import br.inatel.devices.model.DeviceStatus;
 import br.inatel.devices.service.DeviceService;
+import br.inatel.labs.exception.LaboratoryNotFoundException;
 import br.inatel.labs.model.Laboratory;
 import br.inatel.labs.service.LaboratoryService;
 import org.junit.jupiter.api.BeforeEach;
@@ -76,10 +77,10 @@ class DeviceControllerTest {
     @DisplayName("Should propagate error and skip the service when the laboratory does not exist")
     void shouldPropagateLaboratoryNotFound() {
         when(laboratoryService.findById(99L))
-                .thenThrow(new IllegalArgumentException("Laboratory not found"));
+                .thenThrow(new LaboratoryNotFoundException());
 
         assertThatThrownBy(() -> deviceController.create(new DeviceRequest("Oscilloscope", null, 99L)))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(LaboratoryNotFoundException.class)
                 .hasMessage("Laboratory not found");
 
         verifyNoInteractions(deviceService);
@@ -104,7 +105,7 @@ class DeviceControllerTest {
     void shouldUpdateStatus() {
         Device updated = device(7L, "Oscilloscope");
         updated.setStatus(DeviceStatus.MAINTENANCE);
-        when(deviceService.updateStatus(7L, DeviceStatus.MAINTENANCE)).thenReturn(updated);
+        when(deviceService.changeStatusManually(7L, DeviceStatus.MAINTENANCE)).thenReturn(updated);
 
         DeviceResponse response = deviceController.updateStatus(7L,
                 new DeviceStatusRequest(DeviceStatus.MAINTENANCE));
@@ -116,11 +117,11 @@ class DeviceControllerTest {
     @Test
     @DisplayName("Should propagate DeviceNotFoundException when updating an unknown device")
     void shouldPropagateDeviceNotFound() {
-        when(deviceService.updateStatus(99L, DeviceStatus.BORROWED))
+        when(deviceService.changeStatusManually(99L, DeviceStatus.MAINTENANCE))
                 .thenThrow(new DeviceNotFoundException("Device not found"));
 
         assertThatThrownBy(() -> deviceController.updateStatus(99L,
-                new DeviceStatusRequest(DeviceStatus.BORROWED)))
+                new DeviceStatusRequest(DeviceStatus.MAINTENANCE)))
                 .isInstanceOf(DeviceNotFoundException.class)
                 .hasMessage("Device not found");
     }

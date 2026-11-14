@@ -11,6 +11,7 @@ Este diretório reúne os contratos e guias de manutenção do Gestão de Labora
 
 - [Usuários, autenticação e autorização](domains/users/api.md)
 - [Empréstimos](domains/loans/api.md)
+- [Dispositivos](domains/devices/api.md)
 
 ## Arquitetura e operação
 

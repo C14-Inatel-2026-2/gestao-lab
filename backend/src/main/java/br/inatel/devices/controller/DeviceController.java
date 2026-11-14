@@ -61,6 +61,6 @@ public class DeviceController {
     @PreAuthorize("hasRole('ADMIN')")
     public DeviceResponse updateStatus(@PathVariable Long id,
                                        @Valid @RequestBody DeviceStatusRequest request) {
-        return DeviceResponse.from(deviceService.updateStatus(id, request.status()));
+        return DeviceResponse.from(deviceService.changeStatusManually(id, request.status()));
     }
 }

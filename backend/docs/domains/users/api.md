@@ -164,10 +164,16 @@ uma hora e podem ser configuradas com `app.auth.token-ttl` ou `APP_AUTH_TOKEN_TT
 Reiniciar o backend invalida sessões; o usuário promovido precisa entrar novamente para
 receber suas novas permissões.
 
-A conta administrativa inicial é opcional e usa as variáveis
-`INITIAL_ADMIN_ENABLED`, `INITIAL_ADMIN_NAME`, `INITIAL_ADMIN_EMAIL` e
-`INITIAL_ADMIN_PASSWORD`. Não existe senha padrão. Após a criação, desative a opção e
-remova as credenciais do ambiente.
+A conta administrativa inicial é opcional e só é criada quando
+`INITIAL_ADMIN_ENABLED=true`. Configure também `INITIAL_ADMIN_NAME`,
+`INITIAL_ADMIN_EMAIL` e `INITIAL_ADMIN_PASSWORD`. Não existe senha padrão.
+
+Se já existir qualquer `ADMIN`, nenhuma conta é criada ou alterada. Nome, e-mail e
+senha seguem as mesmas validações do cadastro; dados inválidos ou e-mail já usado
+interrompem a inicialização. A senha é armazenada com BCrypt.
+
+No Docker/Compose, as variáveis precisam estar no ambiente do container. Após criar o
+primeiro administrador, desative a opção e remova as credenciais do ambiente.
 
 ## Verificação automatizada
 

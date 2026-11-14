@@ -127,6 +127,7 @@ O desenvolvimento do projeto é organizado utilizando Scrum. O Jira é utilizado
 | Mensagem de credenciais inválidas repetida em `UserService.validateCredentials`. | Reutilizado o construtor sem argumentos de `InvalidCredentialsException`, preservando a mensagem existente. | @LucasYnoguti |
 | Regra de expiração de sessões duplicada em `TokenService.issue` e `resolve`. | Centralizada em `Session.isExpiredAt(Instant)`, preservando a expiração no instante limite. | @LucasYnoguti |
 | Validação de campo obrigatório repetida cinco vezes em `LoanService.create`. | Extraída para o método privado `requirePresent`, preservando as mensagens e a ordem das validações. | @Miwamma |
+| Consulta de sobreposição em `LoanRepository` com nome de 74 caracteres e parâmetros em ordem invertida (`end` antes de `start`). | Renomeada para `existsOverlapping`, com `@Query` explícita e parâmetros na ordem natural, preservando a condição. | @Miwamma |
 ## Documentação da API
 
 - [Usuários e autenticação](backend/docs/domains/users/api.md)
